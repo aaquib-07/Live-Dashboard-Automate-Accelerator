@@ -316,9 +316,11 @@
       overflow-y: auto;
     }
 
-    .sdr-list::-webkit-scrollbar { width: 4px; }
-    .sdr-list::-webkit-scrollbar-track { background: transparent; }
-    .sdr-list::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 4px; }
+    .sdr-list::-webkit-scrollbar { width: 5px; }
+    .sdr-list::-webkit-scrollbar-track { background: transparent; margin: 6px 0; }
+    .sdr-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 100px; }
+    .sdr-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.24); }
+    .sdr-list { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.12) transparent; scroll-behavior: smooth; }
 
     .sdr-item {
       display: flex;
@@ -402,7 +404,41 @@
 
     .table-wrap {
       overflow-x: auto;
+      overflow-y: auto;
       flex: 1;
+      max-height: 480px;
+      scroll-behavior: smooth;
+      padding-right: 2px;
+    }
+
+    /* ── Custom Scrollbar — floating pill indicator ── */
+    .table-wrap::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .table-wrap::-webkit-scrollbar-track {
+      background: transparent;
+      margin: 6px 0;
+    }
+
+    .table-wrap::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.12);
+      border-radius: 100px;
+      transition: background 0.2s;
+    }
+
+    .table-wrap::-webkit-scrollbar-thumb:hover {
+      background: rgba(255,255,255,0.24);
+    }
+
+    .table-wrap::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+
+    /* Firefox scrollbar */
+    .table-wrap {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.12) transparent;
     }
 
     table {
@@ -414,6 +450,7 @@
     thead th {
       position: sticky;
       top: 0;
+      z-index: 2;
       background: var(--bg-elevated);
       text-align: left;
       padding: 10px 14px;
@@ -424,6 +461,7 @@
       text-transform: uppercase;
       white-space: nowrap;
       border-bottom: 1px solid var(--divider);
+      box-shadow: 0 1px 0 var(--divider);
     }
 
     tbody tr {
