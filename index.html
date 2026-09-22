@@ -746,7 +746,7 @@
             client:   cellVal(cells, COL.CLIENT),
             campaign: cellVal(cells, COL.CAMPAIGN),
             status:   cellVal(cells, COL.STATUS).toUpperCase(),
-            date:     cellVal(cells, COL.DATE),
+            date:     formatDate(cellVal(cells, COL.DATE)),
             org:      cellVal(cells, COL.ORG)
           });
         }
@@ -762,6 +762,17 @@
       if (c.v !== null && c.v !== undefined) return String(c.v).trim();
       if (c.f) return String(c.f).trim();
       return '';
+    }
+
+    var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    function formatDate(raw) {
+      if (!raw) return '—';
+      var m = raw.match(/Date\((\d+),(\d+),(\d+)\)/);
+      if (m) {
+        var day = String(m[3]).padStart(2, '0');
+        return day + '-' + MONTHS[parseInt(m[2], 10)] + '-' + m[1];
+      }
+      return raw;
     }
 
     // ── Dashboard rendering ──
