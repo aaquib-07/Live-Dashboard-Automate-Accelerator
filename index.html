@@ -37,6 +37,8 @@
       -webkit-font-smoothing: antialiased;
     }
 
+
+
     /* ── Header ── */
     .header {
       position: sticky;
@@ -219,6 +221,9 @@
       letter-spacing: 0.04em;
       text-transform: uppercase;
       border-bottom: 1px solid var(--divider);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .sdr-list {
@@ -605,7 +610,7 @@
   <div class="main-layout">
     <!-- SDR Panel -->
     <div class="panel">
-      <div class="panel-header">SDR Overview</div>
+      <div class="panel-header"><span>SDR Overview</span><span id="sdrTotalCount" style="background:var(--orange);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:0;text-transform:none;min-width:24px;text-align:center;"></span></div>
       <ul class="sdr-list" id="sdrList">
         <li class="loading-overlay"><div class="spinner"></div></li>
       </ul>
@@ -800,6 +805,7 @@
       var list = document.getElementById('sdrList');
 
       if (sdrs.length === 0) {
+        document.getElementById('sdrTotalCount').textContent = '0';
         list.innerHTML =
           '<li class="empty-state" style="padding:30px 16px">' +
             '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" style="width:32px;height:32px;margin-bottom:8px">' +
@@ -812,6 +818,8 @@
           '</li>';
         return;
       }
+
+      document.getElementById('sdrTotalCount').textContent = sdrs.length;
 
       list.innerHTML = sdrs.map(function(entry) {
         var name = entry[0], data = entry[1];
