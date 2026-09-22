@@ -24,6 +24,8 @@
       --text-secondary: #a09a90;
       --text-muted: #5a5650;
       --divider: rgba(255,255,255,0.06);
+      --glass: rgba(255,255,255,0.03);
+      --glass-border: rgba(255,255,255,0.08);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -35,6 +37,35 @@
       line-height: 1.5;
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(232,113,26,0.06), transparent 70%),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(232,113,26,0.03), transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .header, .kpi-strip, .main-layout, .summary-bar, .error-banner, .charts-section {
+      position: relative;
+      z-index: 1;
     }
 
 
@@ -122,24 +153,75 @@
     .kpi-strip {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      padding: 20px 24px;
+      gap: 14px;
+      padding: 20px 24px 16px;
     }
 
     .kpi-card {
-      background: var(--card);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
       padding: 20px;
-      backdrop-filter: blur(12px);
-      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--orange), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
     }
 
     .kpi-card:hover {
       background: var(--card-hover);
-      border-color: rgba(232,113,26,0.15);
-      box-shadow: 0 0 20px rgba(232,113,26,0.06);
+      border-color: rgba(232,113,26,0.2);
+      box-shadow: 0 4px 24px rgba(232,113,26,0.08), 0 0 0 1px rgba(232,113,26,0.06);
+      transform: translateY(-1px);
     }
+
+    .kpi-card:hover::before {
+      opacity: 1;
+    }
+
+    .kpi-secondary {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .kpi-sparkline {
+      margin-top: 10px;
+      height: 28px;
+      opacity: 0.6;
+    }
+
+    .kpi-progress-ring {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 36px;
+      height: 36px;
+    }
+
+    .kpi-progress-ring circle {
+      fill: none;
+      stroke-width: 3;
+      stroke-linecap: round;
+    }
+
+    .kpi-progress-ring .ring-bg { stroke: rgba(255,255,255,0.06); }
+    .kpi-progress-ring .ring-fill { transition: stroke-dashoffset 0.8s ease; }
 
     .kpi-label {
       font-size: 12px;
@@ -176,11 +258,12 @@
 
     .kpi-value {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 32px;
+      font-size: 34px;
       font-weight: 700;
       font-variant-numeric: tabular-nums;
       color: var(--text);
       line-height: 1.1;
+      letter-spacing: -0.02em;
     }
 
     .kpi-value.green { color: var(--green); }
@@ -205,10 +288,11 @@
 
     /* ── Panels ── */
     .panel {
-      background: var(--card);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      backdrop-filter: blur(12px);
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       overflow: hidden;
     }
 
@@ -275,10 +359,11 @@
 
     /* ── Center Table ── */
     .table-section {
-      background: var(--card);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      backdrop-filter: blur(12px);
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -458,10 +543,11 @@
       display: flex;
       justify-content: center;
       gap: 48px;
-      padding: 14px 24px;
-      background: var(--card);
-      border-top: 1px solid var(--divider);
-      backdrop-filter: blur(12px);
+      padding: 16px 24px;
+      background: linear-gradient(180deg, var(--glass), rgba(232,113,26,0.02));
+      border-top: 1px solid var(--glass-border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
     }
 
     .summary-item {
@@ -536,8 +622,189 @@
     }
 
     /* ── Responsive ── */
+
+    /* ── Charts Section ── */
+    .charts-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding: 0 24px 16px;
+    }
+
+    .chart-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      padding: 20px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .chart-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .chart-legend {
+      display: flex;
+      gap: 16px;
+    }
+
+    .chart-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .chart-legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .chart-canvas {
+      width: 100%;
+      height: 140px;
+      position: relative;
+    }
+
+    .donut-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+    }
+
+    .donut-chart {
+      width: 120px;
+      height: 120px;
+      position: relative;
+    }
+
+    .donut-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .donut-center-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .donut-center-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 2px;
+    }
+
+    .donut-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .donut-stat {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .donut-stat-bar {
+      width: 4px;
+      height: 28px;
+      border-radius: 2px;
+    }
+
+    .donut-stat-info { }
+
+    .donut-stat-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    .donut-stat-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .kpi-card {
+      animation: fadeInUp 0.5s ease both;
+    }
+    .kpi-card:nth-child(1) { animation-delay: 0.05s; }
+    .kpi-card:nth-child(2) { animation-delay: 0.1s; }
+    .kpi-card:nth-child(3) { animation-delay: 0.15s; }
+    .kpi-card:nth-child(4) { animation-delay: 0.2s; }
+
+    .chart-card {
+      animation: fadeInUp 0.5s ease both;
+    }
+    .chart-card:nth-child(1) { animation-delay: 0.25s; }
+    .chart-card:nth-child(2) { animation-delay: 0.3s; }
+
+    .main-layout > * {
+      animation: fadeIn 0.4s ease both;
+      animation-delay: 0.35s;
+    }
+
+    .summary-bar {
+      animation: fadeIn 0.4s ease both;
+      animation-delay: 0.4s;
+    }
+
+    tbody tr {
+      animation: fadeIn 0.3s ease both;
+    }
+
+    .sdr-item {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .sdr-item:hover {
+      padding-left: 20px;
+    }
+
+    .perf-bar-fill {
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
     @media (max-width: 1024px) {
       .main-layout { grid-template-columns: 1fr; }
+      .charts-section { grid-template-columns: 1fr; }
       .header-center { position: static; transform: none; }
       .header { flex-wrap: wrap; gap: 8px; justify-content: center; }
       .kpi-strip { grid-template-columns: repeat(2, 1fr); }
@@ -545,6 +812,7 @@
 
     @media (max-width: 600px) {
       .kpi-strip { grid-template-columns: 1fr; padding: 12px 16px; }
+      .charts-section { grid-template-columns: 1fr; padding: 0 16px 12px; }
       .main-layout { padding: 0 16px 16px; }
       .header { padding: 12px 16px; }
       .summary-bar { flex-wrap: wrap; gap: 16px; padding: 12px 16px; }
@@ -581,6 +849,8 @@
         Total Appointments
       </div>
       <div class="kpi-value" id="kpiTotal">–</div>
+      <div class="kpi-secondary" id="kpiTotalSub">All campaigns combined</div>
+      <svg class="kpi-sparkline" id="sparkTotal" viewBox="0 0 120 28" preserveAspectRatio="none"></svg>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">
@@ -589,6 +859,10 @@
       </div>
       <div class="kpi-value" id="kpiRate">–</div>
       <div class="kpi-delta" id="kpiRateSub"></div>
+      <svg class="kpi-progress-ring" id="rateRing" viewBox="0 0 36 36">
+        <circle class="ring-bg" cx="18" cy="18" r="15.9"/>
+        <circle class="ring-fill" cx="18" cy="18" r="15.9" stroke="var(--orange)" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 18 18)"/>
+      </svg>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">
@@ -596,6 +870,8 @@
         Approved
       </div>
       <div class="kpi-value green" id="kpiApproved">–</div>
+      <div class="kpi-secondary" id="kpiApprovedSub">—</div>
+      <svg class="kpi-sparkline" id="sparkApproved" viewBox="0 0 120 28" preserveAspectRatio="none"></svg>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">
@@ -603,9 +879,42 @@
         Rejected
       </div>
       <div class="kpi-value red" id="kpiRejected">–</div>
+      <div class="kpi-secondary" id="kpiRejectedSub">—</div>
+      <svg class="kpi-sparkline" id="sparkRejected" viewBox="0 0 120 28" preserveAspectRatio="none"></svg>
     </div>
   </div>
 
+
+  <!-- Charts Section -->
+  <div class="charts-section">
+    <div class="chart-card">
+      <div class="chart-header">
+        <span class="chart-title">Daily Appointment Trend</span>
+        <div class="chart-legend">
+          <span class="chart-legend-item"><span class="chart-legend-dot" style="background:var(--orange)"></span>Approved</span>
+          <span class="chart-legend-item"><span class="chart-legend-dot" style="background:var(--red)"></span>Rejected</span>
+        </div>
+      </div>
+      <div class="chart-canvas" id="trendChart"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <span class="chart-title">Status Distribution</span>
+      </div>
+      <div class="donut-container" id="donutChart">
+        <div class="donut-chart">
+          <svg viewBox="0 0 120 120" width="120" height="120" id="donutSvg">
+            <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="14"/>
+          </svg>
+          <div class="donut-center">
+            <div class="donut-center-value" id="donutTotal">–</div>
+            <div class="donut-center-label">Total</div>
+          </div>
+        </div>
+        <div class="donut-stats" id="donutStats"></div>
+      </div>
+    </div>
+  </div>
   <!-- Main Layout -->
   <div class="main-layout">
     <!-- SDR Panel -->
@@ -799,6 +1108,27 @@
       document.getElementById('sumApproved').textContent = approvedCount.toLocaleString();
       document.getElementById('sumRejected').textContent = rejectedCount.toLocaleString();
 
+      // Secondary text for KPI cards
+      var sdrSet = {};
+      allRows.forEach(function(r) { sdrSet[r.sdr] = true; });
+      var sdrCount = Object.keys(sdrSet).length;
+      document.getElementById('kpiTotalSub').textContent = sdrCount + ' SDR' + (sdrCount !== 1 ? 's' : '') + ' across all campaigns';
+      document.getElementById('kpiApprovedSub').textContent = total > 0 ? ((approvedCount / total * 100).toFixed(0) + '% of total appointments') : '—';
+      document.getElementById('kpiRejectedSub').textContent = total > 0 ? ((rejectedCount / total * 100).toFixed(0) + '% of total appointments') : '—';
+
+      // Progress ring for rate
+      var rateVal = total > 0 ? (approvedCount / total * 100) : 0;
+      var ringFill = document.querySelector('#rateRing .ring-fill');
+      if (ringFill) {
+        ringFill.style.strokeDashoffset = (100 - rateVal).toFixed(1);
+      }
+
+      // Sparklines
+      renderSparklines();
+      // Charts
+      renderTrendChart();
+      renderDonutChart(total, approvedCount, rejectedCount);
+
       renderSdrList();
       renderTable(filtered);
       renderPerformance();
@@ -971,6 +1301,163 @@
       var d = document.createElement('div');
       d.textContent = str;
       return d.innerHTML;
+    }
+
+    // ── Sparkline rendering ──
+    function renderSparklines() {
+      var dateMap = {};
+      var approvedMap = {};
+      var rejectedMap = {};
+      allRows.forEach(function(r) {
+        var d = r.date || 'Unknown';
+        dateMap[d] = (dateMap[d] || 0) + 1;
+        if (r.status === 'APPROVED' || r.status === 'APPROVE') approvedMap[d] = (approvedMap[d] || 0) + 1;
+        if (r.status === 'REJECTED' || r.status === 'REJECT') rejectedMap[d] = (rejectedMap[d] || 0) + 1;
+      });
+
+      var dates = Object.keys(dateMap).slice(-10);
+      if (dates.length < 2) dates = ['a', 'b'];
+
+      drawSparkline('sparkTotal', dates.map(function(d) { return dateMap[d] || 0; }), 'var(--orange)');
+      drawSparkline('sparkApproved', dates.map(function(d) { return approvedMap[d] || 0; }), 'var(--green)');
+      drawSparkline('sparkRejected', dates.map(function(d) { return rejectedMap[d] || 0; }), 'var(--red)');
+    }
+
+    function drawSparkline(id, values, color) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var max = Math.max.apply(null, values) || 1;
+      var w = 120, h = 28, pad = 2;
+      var step = values.length > 1 ? (w - pad * 2) / (values.length - 1) : w / 2;
+      var points = values.map(function(v, i) {
+        return (pad + i * step).toFixed(1) + ',' + (h - pad - (v / max) * (h - pad * 2)).toFixed(1);
+      }).join(' ');
+
+      el.innerHTML =
+        '<defs><linearGradient id="sg-' + id + '" x1="0" y1="0" x2="0" y2="1">' +
+          '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.3"/>' +
+          '<stop offset="100%" stop-color="' + color + '" stop-opacity="0"/>' +
+        '</linearGradient></defs>' +
+        '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>' +
+        '<polygon points="' + (pad).toFixed(1) + ',' + h + ' ' + points + ' ' + (pad + (values.length - 1) * step).toFixed(1) + ',' + h + '" fill="url(#sg-' + id + ')"/>';
+    }
+
+    // ── Trend chart ──
+    function renderTrendChart() {
+      var dateApproved = {};
+      var dateRejected = {};
+      allRows.forEach(function(r) {
+        var d = r.date || 'Unknown';
+        if (r.status === 'APPROVED' || r.status === 'APPROVE') dateApproved[d] = (dateApproved[d] || 0) + 1;
+        if (r.status === 'REJECTED' || r.status === 'REJECT') dateRejected[d] = (dateRejected[d] || 0) + 1;
+      });
+
+      var dates = Object.keys(Object.assign({}, dateApproved, dateRejected));
+      dates.sort();
+      dates = dates.slice(-12);
+
+      var el = document.getElementById('trendChart');
+      if (!el || dates.length === 0) {
+        if (el) el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:12px">Trend data will appear with more records</div>';
+        return;
+      }
+
+      var maxVal = 1;
+      dates.forEach(function(d) {
+        var a = dateApproved[d] || 0;
+        var r = dateRejected[d] || 0;
+        if (a > maxVal) maxVal = a;
+        if (r > maxVal) maxVal = r;
+      });
+
+      var barW = Math.min(24, Math.floor((el.offsetWidth - 40) / dates.length / 2.5));
+      if (barW < 6) barW = 6;
+      var h = 120;
+      var gap = 3;
+
+      var html = '<svg width="100%" height="' + h + '" style="overflow:visible">';
+      // Grid lines
+      for (var g = 0; g <= 4; g++) {
+        var gy = h - (g / 4) * h;
+        html += '<line x1="0" y1="' + gy + '" x2="100%" y2="' + gy + '" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>';
+      }
+
+      var totalW = dates.length * (barW * 2 + gap + 12);
+      var offsetX = Math.max(0, (el.offsetWidth - totalW) / 2);
+
+      dates.forEach(function(d, i) {
+        var a = dateApproved[d] || 0;
+        var r = dateRejected[d] || 0;
+        var x = offsetX + i * (barW * 2 + gap + 12);
+        var aH = (a / maxVal) * (h - 24);
+        var rH = (r / maxVal) * (h - 24);
+
+        html += '<rect x="' + x + '" y="' + (h - 14 - aH) + '" width="' + barW + '" height="' + aH + '" rx="3" fill="var(--orange)" opacity="0.8"/>';
+        html += '<rect x="' + (x + barW + gap) + '" y="' + (h - 14 - rH) + '" width="' + barW + '" height="' + rH + '" rx="3" fill="var(--red)" opacity="0.6"/>';
+
+        // Date label
+        var label = d.length > 6 ? d.substring(0, 6) : d;
+        html += '<text x="' + (x + barW + gap / 2) + '" y="' + h + '" text-anchor="middle" fill="var(--text-muted)" font-size="9" font-family="Inter">' + label + '</text>';
+      });
+      html += '</svg>';
+      el.innerHTML = html;
+    }
+
+    // ── Donut chart ──
+    function renderDonutChart(total, approved, rejected) {
+      var other = total - approved - rejected;
+      if (other < 0) other = 0;
+
+      document.getElementById('donutTotal').textContent = total.toLocaleString();
+
+      var svg = document.getElementById('donutSvg');
+      // Clear old arcs
+      var oldArcs = svg.querySelectorAll('.donut-arc');
+      oldArcs.forEach(function(a) { a.remove(); });
+
+      if (total > 0) {
+        var r = 50, circ = 2 * Math.PI * r;
+        var slices = [
+          { val: approved, color: 'var(--green)' },
+          { val: rejected, color: 'var(--red)' },
+          { val: other, color: 'var(--text-muted)' }
+        ];
+        var offset = 0;
+        slices.forEach(function(s) {
+          if (s.val <= 0) return;
+          var pct = s.val / total;
+          var arc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          arc.setAttribute('class', 'donut-arc');
+          arc.setAttribute('cx', '60');
+          arc.setAttribute('cy', '60');
+          arc.setAttribute('r', String(r));
+          arc.setAttribute('fill', 'none');
+          arc.setAttribute('stroke', s.color);
+          arc.setAttribute('stroke-width', '14');
+          arc.setAttribute('stroke-dasharray', (pct * circ).toFixed(2) + ' ' + circ.toFixed(2));
+          arc.setAttribute('stroke-dashoffset', (-offset * circ).toFixed(2));
+          arc.setAttribute('transform', 'rotate(-90 60 60)');
+          arc.style.transition = 'stroke-dasharray 0.6s ease';
+          svg.appendChild(arc);
+          offset += pct;
+        });
+      }
+
+      // Stats
+      var statsEl = document.getElementById('donutStats');
+      statsEl.innerHTML =
+        '<div class="donut-stat">' +
+          '<div class="donut-stat-bar" style="background:var(--green)"></div>' +
+          '<div class="donut-stat-info"><div class="donut-stat-value">' + approved.toLocaleString() + '</div><div class="donut-stat-label">Approved</div></div>' +
+        '</div>' +
+        '<div class="donut-stat">' +
+          '<div class="donut-stat-bar" style="background:var(--red)"></div>' +
+          '<div class="donut-stat-info"><div class="donut-stat-value">' + rejected.toLocaleString() + '</div><div class="donut-stat-label">Rejected</div></div>' +
+        '</div>' +
+        (other > 0 ? '<div class="donut-stat">' +
+          '<div class="donut-stat-bar" style="background:var(--text-muted)"></div>' +
+          '<div class="donut-stat-info"><div class="donut-stat-value">' + other.toLocaleString() + '</div><div class="donut-stat-label">Pending</div></div>' +
+        '</div>' : '');
     }
 
     // Search handler
