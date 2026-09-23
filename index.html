@@ -803,6 +803,76 @@
       color: var(--text-secondary);
     }
 
+    /* ── Category Breakdown (left side of donut) ── */
+    .donut-categories {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 140px;
+    }
+
+    .donut-category {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.04);
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .donut-category:hover {
+      background: rgba(255,255,255,0.04);
+      border-color: rgba(255,255,255,0.08);
+    }
+
+    .donut-category-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .donut-category-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .donut-category-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .donut-category-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .donut-category-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      flex: 1;
+    }
+
+    .donut-category-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+    }
+
+    .donut-category-divider {
+      width: 100%;
+      height: 1px;
+      background: var(--divider);
+    }
+
     /* ── Animations ── */
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(12px); }
@@ -812,6 +882,11 @@
     @keyframes fadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
+    }
+
+    @keyframes rowSlideIn {
+      from { opacity: 0; transform: translateY(-8px); background: rgba(232,113,26,0.08); }
+      to { opacity: 1; transform: translateY(0); background: transparent; }
     }
 
     .kpi-card {
@@ -838,8 +913,26 @@
       animation-delay: 0.4s;
     }
 
-    tbody tr {
-      animation: fadeIn 0.3s ease both;
+    /* Smooth value transitions for KPI updates */
+    .kpi-value, .kpi-secondary, .kpi-delta,
+    .summary-value, .donut-center-value, .donut-stat-value,
+    .perf-count, .sdr-count {
+      transition: opacity 0.3s ease;
+    }
+
+    .value-updating {
+      opacity: 0.6;
+    }
+
+    /* New row animation */
+    tbody tr.row-new {
+      animation: rowSlideIn 0.5s ease both;
+    }
+
+    /* Changed cell flash */
+    tbody td.cell-changed {
+      animation: fadeIn 0.4s ease;
+      color: var(--orange) !important;
     }
 
     .sdr-item {
@@ -941,7 +1034,7 @@
   <div class="charts-section">
     <div class="chart-card">
       <div class="chart-header">
-        <span class="chart-title">Daily Appointment Trend</span>
+        <span class="chart-title">Daily Appointment Scatter</span>
         <div class="chart-legend">
           <span class="chart-legend-item"><span class="chart-legend-dot" style="background:var(--orange)"></span>Approved</span>
           <span class="chart-legend-item"><span class="chart-legend-dot" style="background:var(--red)"></span>Rejected</span>
@@ -954,6 +1047,35 @@
         <span class="chart-title">Status Distribution</span>
       </div>
       <div class="donut-container" id="donutChart">
+        <div class="donut-categories" id="donutCategories">
+          <div class="donut-category">
+            <div class="donut-category-title">Automate Accelerator</div>
+            <div class="donut-category-row">
+              <span class="donut-category-dot" style="background:var(--green);box-shadow:0 0 6px rgba(34,197,94,0.4)"></span>
+              <span class="donut-category-label">Approved</span>
+              <span class="donut-category-value" id="catAaApproved">–</span>
+            </div>
+            <div class="donut-category-row">
+              <span class="donut-category-dot" style="background:var(--red);box-shadow:0 0 6px rgba(239,68,68,0.4)"></span>
+              <span class="donut-category-label">Rejected</span>
+              <span class="donut-category-value" id="catAaRejected">–</span>
+            </div>
+          </div>
+          <div class="donut-category-divider"></div>
+          <div class="donut-category">
+            <div class="donut-category-title">Client</div>
+            <div class="donut-category-row">
+              <span class="donut-category-dot" style="background:var(--green);box-shadow:0 0 6px rgba(34,197,94,0.4)"></span>
+              <span class="donut-category-label">Approved</span>
+              <span class="donut-category-value" id="catClientApproved">–</span>
+            </div>
+            <div class="donut-category-row">
+              <span class="donut-category-dot" style="background:var(--red);box-shadow:0 0 6px rgba(239,68,68,0.4)"></span>
+              <span class="donut-category-label">Rejected</span>
+              <span class="donut-category-value" id="catClientRejected">–</span>
+            </div>
+          </div>
+        </div>
         <div class="donut-chart">
           <svg viewBox="0 0 120 120" width="120" height="120" id="donutSvg">
             <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="14"/>
@@ -1050,79 +1172,19 @@
     const SHEET_ID = '1vuZdmGt21zKGgQ2whmeLZh1L4SqU0LjFjK4u8WrefeY';
     const REFRESH_MS = 3000;
 
-    // Column indices from sheet headers:
-    // A=Date, B=SDR, C=CLIENT, D=Campaign, E=Organisation,
-    // F=Industry, G=Website, H=Linkedin, I=Email, J=Phone,
-    // K=Lead Source, L=BDM Distribution, M=REMARKS, N=STATUS, O=QA SELF OBSERVED
     const COL = { DATE: 0, SDR: 1, CLIENT: 2, CAMPAIGN: 3, ORG: 4, STATUS: 13 };
 
     let allRows = [];
+    let prevDataHash = '';
     let activeSdr = null;
     let fetchCount = 0;
+    let isFirstLoad = true;
 
-    // ── Data fetching via JSONP (works cross-origin, no CORS issues) ──
-    function fetchData() {
-      const cbName = '__gvizCb' + (++fetchCount);
-      const url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID
-        + '/gviz/tq?tqx=responseHandler:' + cbName;
-
-      window[cbName] = function(response) {
-        delete window[cbName];
-        if (script.parentNode) script.parentNode.removeChild(script);
-        try {
-          processData(response);
-        } catch (e) {
-          console.error('Process error:', e);
-          processData(null);
-        }
-      };
-
-      var script = document.createElement('script');
-      script.src = url;
-      script.onerror = function() {
-        delete window[cbName];
-        if (script.parentNode) script.parentNode.removeChild(script);
-        console.error('JSONP load failed');
-        showError('Unable to reach Google Sheets. Will retry…');
-        processData(null);
-      };
-      document.head.appendChild(script);
-    }
-
-    function processData(data) {
-      hideError();
-      allRows = [];
-
-      if (data && data.table && data.table.rows) {
-        var rows = data.table.rows;
-        for (var i = 0; i < rows.length; i++) {
-          var cells = rows[i].c;
-          if (!cells) continue;
-
-          var sdr = cellVal(cells, COL.SDR);
-          if (!sdr || sdr.toUpperCase() === 'SDR') continue;
-
-          allRows.push({
-            sdr:      sdr,
-            client:   cellVal(cells, COL.CLIENT),
-            campaign: cellVal(cells, COL.CAMPAIGN),
-            status:   cellVal(cells, COL.STATUS).toUpperCase(),
-            date:     formatDate(cellVal(cells, COL.DATE)),
-            org:      cellVal(cells, COL.ORG)
-          });
-        }
-      }
-
-      updateDashboard();
-      updateTimestamp();
-    }
-
-    function cellVal(cells, idx) {
-      if (!cells[idx]) return '';
-      var c = cells[idx];
-      if (c.v !== null && c.v !== undefined) return String(c.v).trim();
-      if (c.f) return String(c.f).trim();
-      return '';
+    // ── Utility ──
+    function esc(str) {
+      var d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
     }
 
     var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1136,8 +1198,137 @@
       return raw;
     }
 
-    // ── Dashboard rendering ──
-    function updateDashboard() {
+    function cellVal(cells, idx) {
+      if (!cells[idx]) return '';
+      var c = cells[idx];
+      if (c.v !== null && c.v !== undefined) return String(c.v).trim();
+      if (c.f) return String(c.f).trim();
+      return '';
+    }
+
+    // ── Data fingerprinting — skip re-render if nothing changed ──
+    function hashRows(rows) {
+      return rows.map(function(r) {
+        return r.sdr + '|' + r.client + '|' + r.campaign + '|' + r.status + '|' + r.date;
+      }).join('\n');
+    }
+
+    // ── Smooth text updater — only touches DOM if value changed ──
+    function smoothUpdate(id, newText) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (el.textContent === newText) return;
+      el.textContent = newText;
+    }
+
+    // ── Data fetching (fetch with JSONP fallback) ──
+    function fetchData() {
+      var baseUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq';
+
+      // Strategy 1: fetch API (works in artifact viewers where script-src blocks JSONP)
+      if (window.fetch) {
+        fetch(baseUrl + '?tqx=out:json')
+          .then(function(res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.text();
+          })
+          .then(function(text) {
+            // Response shape: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
+            var start = text.indexOf('(');
+            var end = text.lastIndexOf(')');
+            if (start === -1 || end === -1) throw new Error('Unexpected response format');
+            var json = text.substring(start + 1, end);
+            var data = JSON.parse(json);
+            processData(data);
+          })
+          .catch(function(err) {
+            console.warn('Fetch failed (' + err.message + '), trying JSONP…');
+            fetchDataJsonp();
+          });
+      } else {
+        fetchDataJsonp();
+      }
+    }
+
+    // Strategy 2: JSONP (works in standalone browsers, bypasses CORS)
+    function fetchDataJsonp() {
+      var cbName = '__gvizCb' + (++fetchCount);
+      var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID
+        + '/gviz/tq?tqx=responseHandler:' + cbName;
+
+      var done = false;
+      function cleanup() {
+        if (done) return;
+        done = true;
+        delete window[cbName];
+        if (script.parentNode) script.parentNode.removeChild(script);
+        clearTimeout(timer);
+      }
+
+      window[cbName] = function(response) {
+        cleanup();
+        try { processData(response); }
+        catch (e) { console.error('Process error:', e); processData(null); }
+      };
+
+      var script = document.createElement('script');
+      script.src = url;
+      script.onerror = function() {
+        cleanup();
+        showError('Unable to reach Google Sheets. Will retry…');
+      };
+
+      // Timeout — some CSP blocks don't fire onerror
+      var timer = setTimeout(function() {
+        if (!done) {
+          cleanup();
+          showError('Google Sheets request timed out. Will retry…');
+        }
+      }, 8000);
+
+      document.head.appendChild(script);
+    }
+
+    function processData(data) {
+      hideError();
+      var newRows = [];
+
+      if (data && data.table && data.table.rows) {
+        var rows = data.table.rows;
+        for (var i = 0; i < rows.length; i++) {
+          var cells = rows[i].c;
+          if (!cells) continue;
+          var sdr = cellVal(cells, COL.SDR);
+          if (!sdr || sdr.toUpperCase() === 'SDR') continue;
+          newRows.push({
+            sdr:      sdr,
+            client:   cellVal(cells, COL.CLIENT),
+            campaign: cellVal(cells, COL.CAMPAIGN),
+            status:   cellVal(cells, COL.STATUS).toUpperCase(),
+            date:     formatDate(cellVal(cells, COL.DATE)),
+            org:      cellVal(cells, COL.ORG)
+          });
+        }
+      }
+
+      // Compare fingerprint — skip full re-render if data is identical
+      var newHash = hashRows(newRows);
+      if (newHash === prevDataHash && !isFirstLoad) {
+        updateTimestamp();
+        return; // Data unchanged, skip all DOM work
+      }
+
+      var oldRows = allRows;
+      allRows = newRows;
+      prevDataHash = newHash;
+
+      updateDashboard(oldRows);
+      updateTimestamp();
+      isFirstLoad = false;
+    }
+
+    // ── Dashboard rendering with incremental updates ──
+    function updateDashboard(oldRows) {
       var filtered = activeSdr ? allRows.filter(function(r) { return r.sdr === activeSdr; }) : allRows;
 
       var approvedCount = 0, rejectedCount = 0;
@@ -1149,44 +1340,62 @@
       var total = allRows.length;
       var rate = total > 0 ? ((approvedCount / total) * 100).toFixed(1) : '0.0';
 
-      document.getElementById('kpiTotal').textContent = total.toLocaleString();
-      document.getElementById('kpiRate').textContent = rate + '%';
-      document.getElementById('kpiRateSub').textContent = total > 0
-        ? approvedCount + ' of ' + total + ' approved' : '';
-      document.getElementById('kpiApproved').textContent = approvedCount.toLocaleString();
-      document.getElementById('kpiRejected').textContent = rejectedCount.toLocaleString();
+      // KPI values — only update if changed (no flicker)
+      smoothUpdate('kpiTotal', total.toLocaleString());
+      smoothUpdate('kpiRate', rate + '%');
+      smoothUpdate('kpiRateSub', total > 0 ? approvedCount + ' of ' + total + ' approved' : '');
+      smoothUpdate('kpiApproved', approvedCount.toLocaleString());
+      smoothUpdate('kpiRejected', rejectedCount.toLocaleString());
 
-      document.getElementById('sumTotal').textContent = total.toLocaleString();
-      document.getElementById('sumApproved').textContent = approvedCount.toLocaleString();
-      document.getElementById('sumRejected').textContent = rejectedCount.toLocaleString();
+      // Summary bar
+      smoothUpdate('sumTotal', total.toLocaleString());
+      smoothUpdate('sumApproved', approvedCount.toLocaleString());
+      smoothUpdate('sumRejected', rejectedCount.toLocaleString());
 
-      // Secondary text for KPI cards
+      // Secondary KPI text
       var sdrSet = {};
       allRows.forEach(function(r) { sdrSet[r.sdr] = true; });
       var sdrCount = Object.keys(sdrSet).length;
-      document.getElementById('kpiTotalSub').textContent = sdrCount + ' SDR' + (sdrCount !== 1 ? 's' : '') + ' across all campaigns';
-      document.getElementById('kpiApprovedSub').textContent = total > 0 ? ((approvedCount / total * 100).toFixed(0) + '% of total appointments') : '—';
-      document.getElementById('kpiRejectedSub').textContent = total > 0 ? ((rejectedCount / total * 100).toFixed(0) + '% of total appointments') : '—';
+      smoothUpdate('kpiTotalSub', sdrCount + ' SDR' + (sdrCount !== 1 ? 's' : '') + ' across all campaigns');
+      smoothUpdate('kpiApprovedSub', total > 0 ? ((approvedCount / total * 100).toFixed(0) + '% of total appointments') : '—');
+      smoothUpdate('kpiRejectedSub', total > 0 ? ((rejectedCount / total * 100).toFixed(0) + '% of total appointments') : '—');
 
-      // Progress ring for rate
+      // Progress ring — smooth CSS transition
       var rateVal = total > 0 ? (approvedCount / total * 100) : 0;
       var ringFill = document.querySelector('#rateRing .ring-fill');
       if (ringFill) {
+        ringFill.style.transition = 'stroke-dashoffset 0.6s ease';
         ringFill.style.strokeDashoffset = (100 - rateVal).toFixed(1);
       }
 
-      // Sparklines
-      renderSparklines();
-      // Charts
-      renderTrendChart();
-      renderDonutChart(total, approvedCount, rejectedCount);
+      // Category breakdown: Automate Accelerator vs Client (all others)
+      var aaApproved = 0, aaRejected = 0, clientApproved = 0, clientRejected = 0;
+      allRows.forEach(function(r) {
+        var isAA = r.campaign && r.campaign.toLowerCase() === 'automate accelerator';
+        var isAppr = r.status === 'APPROVED' || r.status === 'APPROVE';
+        var isRej = r.status === 'REJECTED' || r.status === 'REJECT';
+        if (isAA) {
+          if (isAppr) aaApproved++;
+          if (isRej) aaRejected++;
+        } else {
+          if (isAppr) clientApproved++;
+          if (isRej) clientRejected++;
+        }
+      });
 
-      renderSdrList();
-      renderTable(filtered);
-      renderPerformance();
+      // Charts & sparklines
+      renderSparklines();
+      renderTrendChart();
+      renderDonutChart(total, approvedCount, rejectedCount, aaApproved, aaRejected, clientApproved, clientRejected);
+
+      // Incremental SDR list & table
+      renderSdrListIncremental();
+      renderTableIncremental(filtered, oldRows);
+      renderPerformanceIncremental();
     }
 
-    function renderSdrList() {
+    // ── Incremental SDR List ──
+    function renderSdrListIncremental() {
       var sdrMap = {};
       allRows.forEach(function(r) {
         if (!sdrMap[r.sdr]) sdrMap[r.sdr] = { total: 0, approved: 0 };
@@ -1198,43 +1407,97 @@
       var list = document.getElementById('sdrList');
 
       if (sdrs.length === 0) {
-        document.getElementById('sdrTotalCount').textContent = '0';
-        list.innerHTML =
-          '<li class="empty-state" style="padding:30px 16px">' +
-            '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" style="width:32px;height:32px;margin-bottom:8px">' +
-              '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/>' +
-              '<circle cx="9" cy="7" r="4"/>' +
-              '<path d="M23 21v-2a4 4 0 00-3-3.87"/>' +
-              '<path d="M16 3.13a4 4 0 010 7.75"/>' +
-            '</svg>' +
-            '<p style="font-size:12px">No SDR data yet</p>' +
-          '</li>';
+        smoothUpdate('sdrTotalCount', '0');
+        if (!list.querySelector('.empty-state')) {
+          list.innerHTML =
+            '<li class="empty-state" style="padding:30px 16px">' +
+              '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" style="width:32px;height:32px;margin-bottom:8px">' +
+                '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/>' +
+                '<circle cx="9" cy="7" r="4"/>' +
+                '<path d="M23 21v-2a4 4 0 00-3-3.87"/>' +
+                '<path d="M16 3.13a4 4 0 010 7.75"/>' +
+              '</svg>' +
+              '<p style="font-size:12px">No SDR data yet</p>' +
+            '</li>';
+        }
         return;
       }
 
-      document.getElementById('sdrTotalCount').textContent = sdrs.length;
+      smoothUpdate('sdrTotalCount', String(sdrs.length));
 
-      list.innerHTML = sdrs.map(function(entry) {
-        var name = entry[0], data = entry[1];
-        return '<li class="sdr-item' + (activeSdr === name ? ' active' : '') +
-          '" data-sdr="' + esc(name) + '">' +
-          '<span class="sdr-name">' + esc(name) + '</span>' +
-          '<span class="sdr-count">' + data.approved + '</span>' +
-          '</li>';
-      }).join('');
-
+      // Build a map of existing SDR items in the DOM
+      var existingItems = {};
       list.querySelectorAll('.sdr-item').forEach(function(item) {
-        item.addEventListener('click', function() {
-          var sdr = item.getAttribute('data-sdr');
-          activeSdr = activeSdr === sdr ? null : sdr;
-          updateDashboard();
-        });
+        existingItems[item.getAttribute('data-sdr')] = item;
+      });
+
+      // Clear empty state if present
+      var emptyState = list.querySelector('.empty-state');
+      if (emptyState) emptyState.remove();
+      var loadingOverlay = list.querySelector('.loading-overlay');
+      if (loadingOverlay) loadingOverlay.remove();
+
+      // Update or add SDR items
+      var fragment = document.createDocumentFragment();
+      sdrs.forEach(function(entry) {
+        var name = entry[0], data = entry[1];
+        var existing = existingItems[name];
+
+        if (existing) {
+          // Update count if changed
+          var countEl = existing.querySelector('.sdr-count');
+          if (countEl && countEl.textContent !== String(data.approved)) {
+            countEl.textContent = data.approved;
+          }
+          // Update active state
+          if (activeSdr === name && !existing.classList.contains('active')) {
+            existing.classList.add('active');
+          } else if (activeSdr !== name && existing.classList.contains('active')) {
+            existing.classList.remove('active');
+          }
+          fragment.appendChild(existing);
+          delete existingItems[name];
+        } else {
+          // New SDR — create element
+          var li = document.createElement('li');
+          li.className = 'sdr-item' + (activeSdr === name ? ' active' : '');
+          li.setAttribute('data-sdr', name);
+          li.innerHTML = '<span class="sdr-name">' + esc(name) + '</span><span class="sdr-count">' + data.approved + '</span>';
+          li.addEventListener('click', function() {
+            activeSdr = activeSdr === name ? null : name;
+            updateDashboard([]);
+          });
+          fragment.appendChild(li);
+        }
+      });
+
+      // Remove SDRs no longer in data
+      Object.values(existingItems).forEach(function(item) { item.remove(); });
+
+      // Re-append in sorted order (moves existing, appends new)
+      list.appendChild(fragment);
+
+      // Attach click handlers to moved existing items that may have lost them
+      list.querySelectorAll('.sdr-item').forEach(function(item) {
+        if (!item._hasClickHandler) {
+          item._hasClickHandler = true;
+          item.addEventListener('click', function() {
+            var sdr = item.getAttribute('data-sdr');
+            activeSdr = activeSdr === sdr ? null : sdr;
+            updateDashboard([]);
+          });
+        }
       });
     }
 
-    function renderTable(rows) {
+    // ── Incremental Table ──
+    function renderTableIncremental(rows, oldRows) {
       var tbody = document.getElementById('tableBody');
+      var tableWrap = document.querySelector('.table-wrap');
       var search = (document.getElementById('tableSearch').value || '').toLowerCase();
+
+      // Save scroll position before any DOM changes
+      var scrollTop = tableWrap ? tableWrap.scrollTop : 0;
 
       var display = rows;
       if (search) {
@@ -1256,33 +1519,128 @@
               '<p>' + (allRows.length === 0
                 ? 'No data in the connected Google Sheet yet.<br>Add records and they will appear here automatically.'
                 : 'No matching records found.') + '</p>' +
-              '<span class="hint">Auto-refreshes every 30 seconds</span>' +
+              '<span class="hint">Auto-refreshes every 3 seconds</span>' +
             '</div>' +
           '</td></tr>';
         return;
       }
 
-      tbody.innerHTML = display.map(function(r, i) {
+      // Build fingerprint set of old rows for detecting new entries
+      var oldRowKeys = {};
+      if (oldRows) {
+        oldRows.forEach(function(r) {
+          oldRowKeys[r.sdr + '|' + r.client + '|' + r.campaign + '|' + r.date] = r.status;
+        });
+      }
+
+      // On first load or major restructure, use innerHTML for speed
+      if (isFirstLoad || Math.abs(display.length - tbody.children.length) > display.length * 0.5) {
+        tbody.innerHTML = display.map(function(r, i) {
+          return buildRowHtml(r, i, false);
+        }).join('');
+        if (tableWrap) tableWrap.scrollTop = scrollTop;
+        return;
+      }
+
+      // Incremental DOM diffing
+      var existingRows = Array.from(tbody.querySelectorAll('tr'));
+
+      // Grow or shrink the table to match display length
+      while (existingRows.length > display.length) {
+        var removed = existingRows.pop();
+        removed.remove();
+      }
+      while (existingRows.length < display.length) {
+        var newTr = document.createElement('tr');
+        newTr.innerHTML = '<td></td><td></td><td></td><td></td><td></td><td></td>';
+        tbody.appendChild(newTr);
+        existingRows.push(newTr);
+      }
+
+      // Update each row's cells individually
+      display.forEach(function(r, i) {
+        var tr = existingRows[i];
+        if (!tr) return;
+        var tds = tr.querySelectorAll('td');
+        if (tds.length < 6) return;
+
+        var rowKey = r.sdr + '|' + r.client + '|' + r.campaign + '|' + r.date;
+        var isNewRow = oldRows && oldRows.length > 0 && !(rowKey in oldRowKeys);
+        var oldStatus = oldRowKeys[rowKey];
+        var statusChanged = oldStatus && oldStatus !== r.status;
+
+        // Update cell contents only if changed
+        updateCell(tds[0], String(i + 1), 'color:var(--text-muted)');
+
+        var sdrHtml = '<strong>' + esc(r.sdr) + '</strong>';
+        if (tds[1].innerHTML !== sdrHtml) tds[1].innerHTML = sdrHtml;
+
+        updateCellText(tds[2], r.client || '—');
+        updateCellText(tds[3], r.campaign || '—');
+
+        var dateText = r.date || '—';
+        if (tds[4].textContent !== dateText) {
+          tds[4].textContent = dateText;
+          tds[4].style.color = 'var(--text-secondary)';
+        }
+
         var isApproved = r.status === 'APPROVED' || r.status === 'APPROVE';
         var isRejected = r.status === 'REJECTED' || r.status === 'REJECT';
         var badgeClass = isApproved ? 'approved' : (isRejected ? 'rejected' : '');
         var statusLabel = isApproved ? 'Approved' : (isRejected ? 'Rejected' : (r.status || '—'));
+        var statusHtml = badgeClass
+          ? '<span class="badge ' + badgeClass + '"><span class="badge-dot"></span>' + statusLabel + '</span>'
+          : '<span style="color:var(--text-muted)">' + statusLabel + '</span>';
+        if (tds[5].innerHTML !== statusHtml) tds[5].innerHTML = statusHtml;
 
-        return '<tr>' +
-          '<td style="color:var(--text-muted)">' + (i + 1) + '</td>' +
-          '<td><strong>' + esc(r.sdr) + '</strong></td>' +
-          '<td>' + esc(r.client || '—') + '</td>' +
-          '<td>' + esc(r.campaign || '—') + '</td>' +
-          '<td style="color:var(--text-secondary)">' + esc(r.date || '—') + '</td>' +
-          '<td>' + (badgeClass
-            ? '<span class="badge ' + badgeClass + '"><span class="badge-dot"></span>' + statusLabel + '</span>'
-            : '<span style="color:var(--text-muted)">' + statusLabel + '</span>') +
-          '</td>' +
-          '</tr>';
-      }).join('');
+        // Animate new rows
+        if (isNewRow) {
+          tr.classList.remove('row-new');
+          void tr.offsetWidth; // Force reflow to restart animation
+          tr.classList.add('row-new');
+          setTimeout(function() { tr.classList.remove('row-new'); }, 600);
+        }
+
+        // Flash changed status
+        if (statusChanged) {
+          tds[5].classList.add('cell-changed');
+          setTimeout(function() { tds[5].classList.remove('cell-changed'); }, 500);
+        }
+      });
+
+      // Restore scroll position
+      if (tableWrap) tableWrap.scrollTop = scrollTop;
     }
 
-    function renderPerformance() {
+    function updateCell(td, text, style) {
+      if (td.textContent !== text) td.textContent = text;
+      if (style && td.getAttribute('style') !== style) td.setAttribute('style', style);
+    }
+
+    function updateCellText(td, text) {
+      if (td.textContent !== text) td.textContent = text;
+    }
+
+    function buildRowHtml(r, i, isNew) {
+      var isApproved = r.status === 'APPROVED' || r.status === 'APPROVE';
+      var isRejected = r.status === 'REJECTED' || r.status === 'REJECT';
+      var badgeClass = isApproved ? 'approved' : (isRejected ? 'rejected' : '');
+      var statusLabel = isApproved ? 'Approved' : (isRejected ? 'Rejected' : (r.status || '—'));
+
+      return '<tr' + (isNew ? ' class="row-new"' : '') + '>' +
+        '<td style="color:var(--text-muted)">' + (i + 1) + '</td>' +
+        '<td><strong>' + esc(r.sdr) + '</strong></td>' +
+        '<td>' + esc(r.client || '—') + '</td>' +
+        '<td>' + esc(r.campaign || '—') + '</td>' +
+        '<td style="color:var(--text-secondary)">' + esc(r.date || '—') + '</td>' +
+        '<td>' + (badgeClass
+          ? '<span class="badge ' + badgeClass + '"><span class="badge-dot"></span>' + statusLabel + '</span>'
+          : '<span style="color:var(--text-muted)">' + statusLabel + '</span>') +
+        '</td></tr>';
+    }
+
+    // ── Incremental Performance Panel ──
+    function renderPerformanceIncremental() {
       var sdrMap = {};
       allRows.forEach(function(r) {
         if (!sdrMap[r.sdr]) sdrMap[r.sdr] = { total: 0, approved: 0 };
@@ -1293,50 +1651,75 @@
       var sorted = Object.entries(sdrMap).sort(function(a, b) { return b[1].approved - a[1].approved; });
       var maxApproved = sorted.length > 0 ? sorted[0][1].approved : 1;
 
-      var topEl = document.getElementById('topPerformers');
-      if (sorted.length === 0) {
-        topEl.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px 0">No data yet</div>';
+      updatePerfPanel('topPerformers', sorted.slice(0, 3), maxApproved, false);
+
+      if (sorted.length < 4) {
+        var lowEl = document.getElementById('lowPerformers');
+        if (lowEl.querySelector('.perf-item') || lowEl.textContent.indexOf('Need more') === -1) {
+          lowEl.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px 0">Need more SDRs to compare</div>';
+        }
       } else {
-        topEl.innerHTML = sorted.slice(0, 3).map(function(entry, i) {
-          var name = entry[0], data = entry[1];
-          return '<div class="perf-item">' +
-            '<span class="perf-rank">' + (i + 1) + '</span>' +
-            '<div class="perf-info">' +
-              '<div class="perf-name">' + esc(name) + '</div>' +
-              '<div class="perf-bar-track">' +
-                '<div class="perf-bar-fill" style="width:' + (data.approved / maxApproved * 100).toFixed(0) + '%"></div>' +
-              '</div>' +
-            '</div>' +
-            '<span class="perf-count">' + data.approved + '</span>' +
-            '</div>';
-        }).join('');
+        updatePerfPanel('lowPerformers', sorted.slice(-3).reverse(), maxApproved, true);
+      }
+    }
+
+    function updatePerfPanel(containerId, entries, maxApproved, isLow) {
+      var container = document.getElementById(containerId);
+      if (!container) return;
+
+      if (entries.length === 0) {
+        if (!container.querySelector('[style*="No data"]') && container.textContent.indexOf('No data') === -1) {
+          container.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px 0">No data yet</div>';
+        }
+        return;
       }
 
-      var lowEl = document.getElementById('lowPerformers');
-      if (sorted.length < 4) {
-        lowEl.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px 0">Need more SDRs to compare</div>';
-      } else {
-        lowEl.innerHTML = sorted.slice(-3).reverse().map(function(entry) {
+      var existingItems = container.querySelectorAll('.perf-item');
+
+      // If count differs, rebuild (rare)
+      if (existingItems.length !== entries.length) {
+        container.innerHTML = entries.map(function(entry, i) {
           var name = entry[0], data = entry[1];
+          var rankText = isLow ? '—' : String(i + 1);
+          var rankStyle = isLow ? ' style="color:var(--red)"' : '';
+          var barClass = isLow ? ' low' : '';
+          var countStyle = isLow ? ' style="color:var(--red)"' : '';
           return '<div class="perf-item">' +
-            '<span class="perf-rank" style="color:var(--red)">—</span>' +
+            '<span class="perf-rank"' + rankStyle + '>' + rankText + '</span>' +
             '<div class="perf-info">' +
               '<div class="perf-name">' + esc(name) + '</div>' +
               '<div class="perf-bar-track">' +
-                '<div class="perf-bar-fill low" style="width:' + (data.approved / maxApproved * 100).toFixed(0) + '%"></div>' +
+                '<div class="perf-bar-fill' + barClass + '" style="width:' + (data.approved / maxApproved * 100).toFixed(0) + '%"></div>' +
               '</div>' +
             '</div>' +
-            '<span class="perf-count" style="color:var(--red)">' + data.approved + '</span>' +
+            '<span class="perf-count"' + countStyle + '>' + data.approved + '</span>' +
             '</div>';
         }).join('');
+        return;
       }
+
+      // Update existing items in place
+      entries.forEach(function(entry, i) {
+        var item = existingItems[i];
+        if (!item) return;
+        var name = entry[0], data = entry[1];
+
+        var nameEl = item.querySelector('.perf-name');
+        if (nameEl && nameEl.textContent !== name) nameEl.textContent = name;
+
+        var barFill = item.querySelector('.perf-bar-fill');
+        if (barFill) barFill.style.width = (data.approved / maxApproved * 100).toFixed(0) + '%';
+
+        var countEl = item.querySelector('.perf-count');
+        if (countEl && countEl.textContent !== String(data.approved)) countEl.textContent = data.approved;
+      });
     }
 
     function updateTimestamp() {
       var now = new Date();
-      document.getElementById('lastUpdated').textContent =
+      smoothUpdate('lastUpdated',
         now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ', ' +
-        now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     }
 
     function showError(msg) {
@@ -1347,12 +1730,6 @@
 
     function hideError() {
       document.getElementById('errorBanner').style.display = 'none';
-    }
-
-    function esc(str) {
-      var d = document.createElement('div');
-      d.textContent = str;
-      return d.innerHTML;
     }
 
     // ── Sparkline rendering ──
@@ -1367,7 +1744,19 @@
         if (r.status === 'REJECTED' || r.status === 'REJECT') rejectedMap[d] = (rejectedMap[d] || 0) + 1;
       });
 
-      var dates = Object.keys(dateMap).slice(-10);
+      var dates = Object.keys(dateMap);
+      var mIdx = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+      dates.sort(function(a, b) {
+        var pa = a.match(/^(\d+)-([A-Za-z]+)-(\d+)$/);
+        var pb = b.match(/^(\d+)-([A-Za-z]+)-(\d+)$/);
+        if (!pa || !pb) return 0;
+        var ya = parseInt(pa[3],10), yb = parseInt(pb[3],10);
+        if (ya !== yb) return ya - yb;
+        var ma = mIdx[pa[2]] || 0, mb = mIdx[pb[2]] || 0;
+        if (ma !== mb) return ma - mb;
+        return parseInt(pa[1],10) - parseInt(pb[1],10);
+      });
+      dates = dates.slice(-10);
       if (dates.length < 2) dates = ['a', 'b'];
 
       drawSparkline('sparkTotal', dates.map(function(d) { return dateMap[d] || 0; }), 'var(--orange)');
@@ -1385,13 +1774,16 @@
         return (pad + i * step).toFixed(1) + ',' + (h - pad - (v / max) * (h - pad * 2)).toFixed(1);
       }).join(' ');
 
-      el.innerHTML =
+      var newHtml =
         '<defs><linearGradient id="sg-' + id + '" x1="0" y1="0" x2="0" y2="1">' +
           '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.3"/>' +
           '<stop offset="100%" stop-color="' + color + '" stop-opacity="0"/>' +
         '</linearGradient></defs>' +
         '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>' +
         '<polygon points="' + (pad).toFixed(1) + ',' + h + ' ' + points + ' ' + (pad + (values.length - 1) * step).toFixed(1) + ',' + h + '" fill="url(#sg-' + id + ')"/>';
+
+      // Only update if sparkline data actually changed
+      if (el.innerHTML !== newHtml) el.innerHTML = newHtml;
     }
 
     // ── Trend chart ──
@@ -1405,12 +1797,22 @@
       });
 
       var dates = Object.keys(Object.assign({}, dateApproved, dateRejected));
-      dates.sort();
-      dates = dates.slice(-12);
+      var monthIdx = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+      dates.sort(function(a, b) {
+        var pa = a.match(/^(\d+)-([A-Za-z]+)-(\d+)$/);
+        var pb = b.match(/^(\d+)-([A-Za-z]+)-(\d+)$/);
+        if (!pa || !pb) return a < b ? -1 : a > b ? 1 : 0;
+        var ya = parseInt(pa[3],10), yb = parseInt(pb[3],10);
+        if (ya !== yb) return ya - yb;
+        var ma = monthIdx[pa[2]] || 0, mb = monthIdx[pb[2]] || 0;
+        if (ma !== mb) return ma - mb;
+        return parseInt(pa[1],10) - parseInt(pb[1],10);
+      });
+      dates = dates.slice(-14);
 
       var el = document.getElementById('trendChart');
       if (!el || dates.length === 0) {
-        if (el) el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:12px">Trend data will appear with more records</div>';
+        if (el) el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:12px">Scatter data will appear with more records</div>';
         return;
       }
 
@@ -1418,52 +1820,99 @@
       dates.forEach(function(d) {
         var a = dateApproved[d] || 0;
         var r = dateRejected[d] || 0;
+        if (a + r > maxVal) maxVal = a + r;
         if (a > maxVal) maxVal = a;
         if (r > maxVal) maxVal = r;
       });
 
-      var barW = Math.min(24, Math.floor((el.offsetWidth - 40) / dates.length / 2.5));
-      if (barW < 6) barW = 6;
       var h = 120;
-      var gap = 3;
+      var padL = 28, padR = 10, padT = 8, padB = 18;
+      var plotW = el.offsetWidth - padL - padR;
+      var plotH = h - padT - padB;
 
       var html = '<svg width="100%" height="' + h + '" style="overflow:visible">';
-      // Grid lines
-      for (var g = 0; g <= 4; g++) {
-        var gy = h - (g / 4) * h;
-        html += '<line x1="0" y1="' + gy + '" x2="100%" y2="' + gy + '" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>';
+
+      // Y-axis grid lines and labels
+      var gridSteps = Math.min(maxVal, 4);
+      for (var g = 0; g <= gridSteps; g++) {
+        var gy = padT + plotH - (g / gridSteps) * plotH;
+        var gVal = Math.round(g / gridSteps * maxVal);
+        html += '<line x1="' + padL + '" y1="' + gy.toFixed(1) + '" x2="' + (padL + plotW) + '" y2="' + gy.toFixed(1) + '" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>';
+        html += '<text x="' + (padL - 6) + '" y="' + (gy + 3).toFixed(1) + '" text-anchor="end" fill="var(--text-muted)" font-size="9" font-family="Inter">' + gVal + '</text>';
       }
 
-      var totalW = dates.length * (barW * 2 + gap + 12);
-      var offsetX = Math.max(0, (el.offsetWidth - totalW) / 2);
+      // X-axis baseline
+      html += '<line x1="' + padL + '" y1="' + (padT + plotH) + '" x2="' + (padL + plotW) + '" y2="' + (padT + plotH) + '" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>';
 
+      // Compute x positions for each date
+      var xStep = dates.length > 1 ? plotW / (dates.length - 1) : plotW / 2;
+
+      // Draw connecting lines (approved then rejected)
+      if (dates.length > 1) {
+        var approvedLine = '';
+        var rejectedLine = '';
+        dates.forEach(function(d, i) {
+          var cx = dates.length > 1 ? padL + i * xStep : padL + plotW / 2;
+          var aVal = dateApproved[d] || 0;
+          var rVal = dateRejected[d] || 0;
+          var ay = padT + plotH - (aVal / maxVal) * plotH;
+          var ry = padT + plotH - (rVal / maxVal) * plotH;
+          approvedLine += (i === 0 ? 'M' : 'L') + cx.toFixed(1) + ',' + ay.toFixed(1);
+          rejectedLine += (i === 0 ? 'M' : 'L') + cx.toFixed(1) + ',' + ry.toFixed(1);
+        });
+        html += '<path d="' + approvedLine + '" fill="none" stroke="var(--orange)" stroke-width="1.5" stroke-opacity="0.3" stroke-dasharray="4,4"/>';
+        html += '<path d="' + rejectedLine + '" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-opacity="0.3" stroke-dasharray="4,4"/>';
+      }
+
+      // Draw scatter dots and x-axis labels
       dates.forEach(function(d, i) {
-        var a = dateApproved[d] || 0;
-        var r = dateRejected[d] || 0;
-        var x = offsetX + i * (barW * 2 + gap + 12);
-        var aH = (a / maxVal) * (h - 24);
-        var rH = (r / maxVal) * (h - 24);
+        var cx = dates.length > 1 ? padL + i * xStep : padL + plotW / 2;
+        var aVal = dateApproved[d] || 0;
+        var rVal = dateRejected[d] || 0;
+        var ay = padT + plotH - (aVal / maxVal) * plotH;
+        var ry = padT + plotH - (rVal / maxVal) * plotH;
+        var dotR = 5;
 
-        html += '<rect x="' + x + '" y="' + (h - 14 - aH) + '" width="' + barW + '" height="' + aH + '" rx="3" fill="var(--orange)" opacity="0.8"/>';
-        html += '<rect x="' + (x + barW + gap) + '" y="' + (h - 14 - rH) + '" width="' + barW + '" height="' + rH + '" rx="3" fill="var(--red)" opacity="0.6"/>';
+        // Approved dot (orange) with glow
+        if (aVal > 0) {
+          html += '<circle cx="' + cx.toFixed(1) + '" cy="' + ay.toFixed(1) + '" r="' + (dotR + 4) + '" fill="var(--orange)" opacity="0.15"/>';
+          html += '<circle cx="' + cx.toFixed(1) + '" cy="' + ay.toFixed(1) + '" r="' + dotR + '" fill="var(--orange)" stroke="#0d0d0d" stroke-width="1.5" opacity="0.9"/>';
+          html += '<text x="' + cx.toFixed(1) + '" y="' + (ay - dotR - 4).toFixed(1) + '" text-anchor="middle" fill="var(--orange)" font-size="9" font-weight="600" font-family="Inter">' + aVal + '</text>';
+        }
 
-        // Date label
+        // Rejected dot (red) with glow
+        if (rVal > 0) {
+          html += '<circle cx="' + cx.toFixed(1) + '" cy="' + ry.toFixed(1) + '" r="' + (dotR + 4) + '" fill="var(--red)" opacity="0.15"/>';
+          html += '<circle cx="' + cx.toFixed(1) + '" cy="' + ry.toFixed(1) + '" r="' + dotR + '" fill="var(--red)" stroke="#0d0d0d" stroke-width="1.5" opacity="0.9"/>';
+          html += '<text x="' + cx.toFixed(1) + '" y="' + (ry - dotR - 4).toFixed(1) + '" text-anchor="middle" fill="var(--red)" font-size="9" font-weight="600" font-family="Inter">' + rVal + '</text>';
+        }
+
+        // X-axis date label
         var label = d.length > 6 ? d.substring(0, 6) : d;
-        html += '<text x="' + (x + barW + gap / 2) + '" y="' + h + '" text-anchor="middle" fill="var(--text-muted)" font-size="9" font-family="Inter">' + label + '</text>';
+        // Show every label if few dates, otherwise skip alternates
+        if (dates.length <= 7 || i % 2 === 0 || i === dates.length - 1) {
+          html += '<text x="' + cx.toFixed(1) + '" y="' + (h - 1) + '" text-anchor="middle" fill="var(--text-muted)" font-size="8" font-family="Inter">' + label + '</text>';
+        }
       });
+
       html += '</svg>';
       el.innerHTML = html;
     }
 
     // ── Donut chart ──
-    function renderDonutChart(total, approved, rejected) {
+    function renderDonutChart(total, approved, rejected, aaApproved, aaRejected, clientApproved, clientRejected) {
       var other = total - approved - rejected;
       if (other < 0) other = 0;
 
-      document.getElementById('donutTotal').textContent = total.toLocaleString();
+      smoothUpdate('donutTotal', total.toLocaleString());
+
+      // Update category breakdown (left panel)
+      smoothUpdate('catAaApproved', (aaApproved || 0).toLocaleString());
+      smoothUpdate('catAaRejected', (aaRejected || 0).toLocaleString());
+      smoothUpdate('catClientApproved', (clientApproved || 0).toLocaleString());
+      smoothUpdate('catClientRejected', (clientRejected || 0).toLocaleString());
 
       var svg = document.getElementById('donutSvg');
-      // Clear old arcs
       var oldArcs = svg.querySelectorAll('.donut-arc');
       oldArcs.forEach(function(a) { a.remove(); });
 
@@ -1495,27 +1944,38 @@
         });
       }
 
-      // Stats
+      // Donut stats — incremental update
       var statsEl = document.getElementById('donutStats');
-      statsEl.innerHTML =
-        '<div class="donut-stat">' +
-          '<div class="donut-stat-bar" style="background:var(--green)"></div>' +
-          '<div class="donut-stat-info"><div class="donut-stat-value">' + approved.toLocaleString() + '</div><div class="donut-stat-label">Approved</div></div>' +
-        '</div>' +
-        '<div class="donut-stat">' +
-          '<div class="donut-stat-bar" style="background:var(--red)"></div>' +
-          '<div class="donut-stat-info"><div class="donut-stat-value">' + rejected.toLocaleString() + '</div><div class="donut-stat-label">Rejected</div></div>' +
-        '</div>' +
-        (other > 0 ? '<div class="donut-stat">' +
-          '<div class="donut-stat-bar" style="background:var(--text-muted)"></div>' +
-          '<div class="donut-stat-info"><div class="donut-stat-value">' + other.toLocaleString() + '</div><div class="donut-stat-label">Pending</div></div>' +
-        '</div>' : '');
+      var statValues = statsEl.querySelectorAll('.donut-stat-value');
+      if (statValues.length >= 2) {
+        // Update existing stat values in place
+        if (statValues[0].textContent !== approved.toLocaleString()) statValues[0].textContent = approved.toLocaleString();
+        if (statValues[1].textContent !== rejected.toLocaleString()) statValues[1].textContent = rejected.toLocaleString();
+        if (other > 0 && statValues[2]) {
+          if (statValues[2].textContent !== other.toLocaleString()) statValues[2].textContent = other.toLocaleString();
+        }
+      } else {
+        // First render — build stats
+        statsEl.innerHTML =
+          '<div class="donut-stat">' +
+            '<div class="donut-stat-bar" style="background:var(--green)"></div>' +
+            '<div class="donut-stat-info"><div class="donut-stat-value">' + approved.toLocaleString() + '</div><div class="donut-stat-label">Approved</div></div>' +
+          '</div>' +
+          '<div class="donut-stat">' +
+            '<div class="donut-stat-bar" style="background:var(--red)"></div>' +
+            '<div class="donut-stat-info"><div class="donut-stat-value">' + rejected.toLocaleString() + '</div><div class="donut-stat-label">Rejected</div></div>' +
+          '</div>' +
+          (other > 0 ? '<div class="donut-stat">' +
+            '<div class="donut-stat-bar" style="background:var(--text-muted)"></div>' +
+            '<div class="donut-stat-info"><div class="donut-stat-value">' + other.toLocaleString() + '</div><div class="donut-stat-label">Pending</div></div>' +
+          '</div>' : '');
+      }
     }
 
     // Search handler
     document.getElementById('tableSearch').addEventListener('input', function() {
       var filtered = activeSdr ? allRows.filter(function(r) { return r.sdr === activeSdr; }) : allRows;
-      renderTable(filtered);
+      renderTableIncremental(filtered, null);
     });
 
     // Initial fetch + auto-refresh
