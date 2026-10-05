@@ -1056,8 +1056,263 @@
       .slack-section { margin: 0 16px 12px; max-height: 280px; }
     }
   </style>
+
+  <!-- ═══════════ LIVE ANIMATION LAYER (added) ═══════════
+       Everything in this block is motion only. The dashboard's own styles are in the block above. -->
+  <style id="live-fx">
+    @keyframes fxLineFlow { 0% { background-position: 200% 0; } 100% { background-position: 0 0; } }
+    @keyframes fxEdgeRun { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
+    @keyframes fxRipple { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(3); opacity: 0; } }
+    @keyframes livePulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.55; transform: scale(0.8); } }
+    @keyframes fxSlideIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
+    @keyframes fxRowIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    @keyframes fxFade { to { opacity: 1; } }
+    @keyframes fxBump { 0% { transform: scale(1); } 35% { transform: scale(1.14); text-shadow: 0 0 22px var(--orange-glow); } 100% { transform: scale(1); } }
+    @keyframes fxFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+    @keyframes fxShine { 0% { transform: translateX(-120%) skewX(-18deg); } 35%, 100% { transform: translateX(480%) skewX(-18deg); } }
+    @keyframes fxIconRipple { 0% { transform: scale(1); opacity: 0.55; } 70%, 100% { transform: scale(1.75); opacity: 0; } }
+    @keyframes fxSpin { to { transform: rotate(360deg); } }
+    @keyframes fxGrowX { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    @keyframes fxGrowY { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+    @keyframes fxBar { 0%, 100% { transform: scaleY(1); opacity: 1; } 50% { transform: scaleY(0.5); opacity: 0.6; } }
+
+    /* ── Live background network ── */
+    #fxCanvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+
+    /* ── Header ── */
+    .header::after {
+      content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; pointer-events: none;
+      background: linear-gradient(90deg, transparent 0%, var(--orange) 25%, var(--orange-soft) 50%, var(--orange) 75%, transparent 100%);
+      background-size: 200% 100%; opacity: 0.75;
+      animation: fxLineFlow 6s linear infinite;
+    }
+    .live-indicator { position: relative; }
+    /* small bar under "Live" that refills once per 3-second data refresh */
+    .live-indicator::after {
+      content: ''; position: absolute; left: 0; right: 0; bottom: -5px; height: 2px; border-radius: 2px;
+      background: var(--green); opacity: 0.65; transform-origin: left;
+      animation: fxGrowX 3s linear infinite;
+    }
+    .live-dot { position: relative; }
+    .live-dot::after {
+      content: ''; position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid var(--green);
+      animation: fxRipple 1.8s ease-out infinite;
+    }
+    .header-title {
+      background: linear-gradient(90deg, var(--text) 0%, var(--text) 38%, var(--orange-soft) 50%, var(--text) 62%, var(--text) 100%);
+      background-size: 260% 100%;
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: fxTitleSheen 7s linear infinite;
+    }
+    @keyframes fxTitleSheen { 0% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
+    .header-logo { animation: fxFloat 4.5s ease-in-out infinite; }
+    #lastUpdated.fx-tick { animation: fxTick 0.9s ease; }
+    @keyframes fxTick { 0% { color: var(--text); text-shadow: 0 0 10px var(--orange-glow); } 100% { color: var(--text-secondary); text-shadow: none; } }
+
+    /* ── KPI cards ── */
+    .kpi-card { animation-fill-mode: backwards; }   /* lets the cards move again once they have faded in */
+    .kpi-card:hover {
+      transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-4px);
+    }
+    .kpi-card.fx-tilting { transition: transform 0.12s ease-out, background 0.3s, border-color 0.3s, box-shadow 0.3s; }
+    .kpi-card::before {
+      background: linear-gradient(90deg, transparent, var(--orange), var(--orange-soft), var(--orange), transparent);
+      background-size: 200% 100%;
+      opacity: 0.4;
+      animation: fxLineFlow 3.5s linear infinite;
+    }
+    .kpi-card::after {   /* spotlight that follows the pointer */
+      content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+      background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), var(--orange-dim), transparent 70%);
+      opacity: 0; transition: opacity 0.3s ease;
+    }
+    .kpi-card:hover::after { opacity: 1; }
+    .fx-shine {
+      position: absolute; top: 0; bottom: 0; left: 0; width: 28%; pointer-events: none;
+      background: linear-gradient(100deg, transparent, rgba(255,255,255,0.035), transparent);
+      transform: translateX(-120%) skewX(-18deg);
+      animation: fxShine 7s ease-in-out infinite; animation-delay: var(--d, 0s);
+    }
+    .kpi-icon { position: relative; }
+    .kpi-icon::after {
+      content: ''; position: absolute; inset: 0; border-radius: 8px; border: 1.5px solid var(--orange); opacity: 0;
+      animation: fxIconRipple 2.8s ease-out infinite; animation-delay: var(--d, 0s);
+    }
+    .kpi-icon svg { overflow: visible; }
+    .kpi-card:nth-child(1) .kpi-icon svg { animation: fxFlipY 3.6s ease-in-out infinite; }
+    .kpi-card:nth-child(3) .kpi-icon svg { animation: fxPop 2.6s ease-in-out infinite; }
+    .kpi-card:nth-child(4) .kpi-icon svg { animation: fxShake 2.8s ease-in-out infinite; }
+    .fx-draw { stroke-dasharray: 1; animation: fxDraw 2.4s ease-in-out infinite; }
+    @keyframes fxFlipY { 0%, 60%, 100% { transform: rotateY(0); } 80% { transform: rotateY(360deg); } }
+    @keyframes fxPop { 0%, 60%, 100% { transform: scale(1); } 75% { transform: scale(1.3) rotate(-8deg); } 88% { transform: scale(0.94); } }
+    @keyframes fxShake { 0%, 55%, 100% { transform: translateX(0); } 62% { transform: translateX(-3px) rotate(-8deg); } 70% { transform: translateX(3px) rotate(8deg); } 78% { transform: translateX(-2px); } 86% { transform: translateX(2px); } }
+    @keyframes fxDraw { 0% { stroke-dashoffset: 1; } 45%, 80% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0.3; } }
+
+    .kpi-value { transform-origin: left center; animation: fxValGlow 4s ease-in-out infinite; }
+    .kpi-value.green { animation-name: fxValGlowGreen; }
+    .kpi-value.red { animation-name: fxValGlowRed; }
+    @keyframes fxValGlow { 0%, 100% { text-shadow: none; } 50% { text-shadow: 0 0 18px rgba(232,113,26,0.35); } }
+    @keyframes fxValGlowGreen { 0%, 100% { text-shadow: none; } 50% { text-shadow: 0 0 18px rgba(34,197,94,0.4); } }
+    @keyframes fxValGlowRed { 0%, 100% { text-shadow: none; } 50% { text-shadow: 0 0 18px rgba(239,68,68,0.4); } }
+    .fx-bump { animation: fxBump 0.6s ease !important; }
+    .summary-value, .status-kpi-val, .slack-count, .sdr-count, #sdrTotalCount { display: inline-block; }
+
+    /* rate ring */
+    .kpi-progress-ring { overflow: visible; }
+    .kpi-progress-ring .ring-fill { filter: drop-shadow(0 0 3px var(--orange-glow)); }
+    .fx-orbit { transform-origin: 18px 18px; animation: fxSpin 6s linear infinite; }
+    .fx-orbit circle { fill: var(--orange-soft); stroke: none; }
+
+    /* sparklines draw themselves, then the latest point keeps pulsing */
+    .kpi-sparkline { opacity: 0.75; overflow: visible; transition: opacity 0.3s ease; }
+    .kpi-card:hover .kpi-sparkline { opacity: 1; }
+    .fx-spark-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: fxSparkDraw 1.6s cubic-bezier(0.4,0,0.2,1) 0.2s forwards; }
+    .fx-spark-area { opacity: 0; animation: fxFade 0.9s ease 1s forwards; }
+    .fx-spark-dot { opacity: 0; animation: fxFade 0.3s ease 1.6s forwards, fxSparkDot 1.6s ease-in-out 1.9s infinite; }
+    @keyframes fxSparkDraw { to { stroke-dashoffset: 0; } }
+    @keyframes fxSparkDot { 0%, 100% { stroke-width: 5; stroke-opacity: 1; } 50% { stroke-width: 10; stroke-opacity: 0.4; } }
+
+    /* ── Status cards and donut ── */
+    .status-kpi-card {
+      animation-fill-mode: backwards; position: relative; overflow: hidden;
+      transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), border-color 0.3s, box-shadow 0.3s, background 0.3s;
+    }
+    .status-kpi-card:hover {
+      transform: translateY(-3px); background: var(--card-hover);
+      border-color: rgba(232,113,26,0.2); box-shadow: 0 4px 24px rgba(232,113,26,0.08);
+    }
+    .status-kpi-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--orange), var(--orange-soft), var(--orange), transparent);
+      background-size: 200% 100%; opacity: 0.35;
+      animation: fxLineFlow 4s linear infinite;
+    }
+    .status-kpi-dot { position: relative; animation: livePulse 2.2s ease-in-out infinite; }
+    .status-kpi-dot::after {
+      content: ''; position: absolute; inset: 0; border-radius: 50%; background: inherit;
+      animation: fxRipple 2.2s ease-out infinite;
+    }
+    .status-kpi-row:nth-child(3) .status-kpi-dot, .status-kpi-row:nth-child(3) .status-kpi-dot::after { animation-delay: 1.1s; }
+    .status-kpi-row { animation: fxSlideIn 0.5s ease 0.5s backwards; }
+    .status-kpi-row:nth-child(3) { animation-delay: 0.62s; }
+    .donut-chart::before {
+      content: ''; position: absolute; inset: -16px; border-radius: 50%; pointer-events: none;
+      background: radial-gradient(circle, var(--orange-glow), transparent 68%);
+      animation: fxHalo 4s ease-in-out infinite;
+    }
+    @keyframes fxHalo { 0%, 100% { opacity: 0.2; transform: scale(0.94); } 50% { opacity: 0.5; transform: scale(1.06); } }
+    #donutSvg { position: relative; overflow: visible; }
+    .fx-donut-ring { transform-origin: 60px 60px; animation: fxSpin 26s linear infinite; }
+    .fx-donut-dot { transform-origin: 60px 60px; animation: fxSpin 9s linear infinite reverse; }
+    .donut-stat { animation: fxRowIn 0.5s ease 0.55s backwards; }
+    .donut-stat:nth-child(2) { animation-delay: 0.67s; }
+    .donut-stat:nth-child(3) { animation-delay: 0.79s; }
+    .donut-stat-bar { transform-origin: bottom; animation: fxGrowY 0.8s cubic-bezier(0.2,0.8,0.2,1) 0.6s backwards, fxBarGlow 2.6s ease-in-out 1.4s infinite; }
+    @keyframes fxBarGlow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.5) drop-shadow(0 0 5px currentColor); } }
+
+    /* ── Panels ── */
+    .panel, .table-section, .slack-section { position: relative; }
+    .panel::before, .table-section::before, .slack-section::before {
+      content: ''; position: absolute; left: 0; top: 0; height: 2px; width: 35%; z-index: 3; pointer-events: none;
+      background: linear-gradient(90deg, transparent, var(--orange), var(--orange-soft), transparent);
+      opacity: 0.7; animation: fxEdgeRun 7s linear infinite;
+    }
+    .table-section::before { animation-delay: -2.3s; }
+    .perf-panel::before { animation-delay: -4.6s; }
+    .panel-header > span:first-child::before, .table-title::before {
+      content: ''; display: inline-block; width: 3px; height: 0.95em; margin-right: 8px; vertical-align: -2px; border-radius: 2px;
+      background: var(--orange); box-shadow: 0 0 8px var(--orange-glow);
+      animation: fxBar 2.4s ease-in-out infinite;
+    }
+    #sdrTotalCount { animation: fxBadgeGlow 2.4s ease-in-out infinite; }
+    @keyframes fxBadgeGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(232,113,26,0.5); } 50% { box-shadow: 0 0 0 5px rgba(232,113,26,0); } }
+
+    /* SDR list */
+    .sdr-list.fx-stagger .sdr-item-wrap { animation: fxSlideIn 0.45s cubic-bezier(0.2,0.8,0.2,1) both; animation-delay: calc(var(--i, 0) * 45ms); }
+    .sdr-count { transition: transform 0.2s ease, opacity 0.3s ease; }
+    .sdr-item:hover .sdr-count { transform: scale(1.14); }
+    .sdr-item-wrap.active { animation: fxActive 2s ease-in-out infinite; }
+    @keyframes fxActive { 0%, 100% { box-shadow: inset 0 0 0 0 rgba(232,113,26,0); } 50% { box-shadow: inset 6px 0 14px -6px rgba(232,113,26,0.55); } }
+    .sdr-item-wrap.active .sdr-count { animation: fxBadgeGlow 1.6s ease-in-out infinite; }
+    .sdr-campaigns.open .sdr-campaign-row { animation: fxSlideIn 0.3s ease both; }
+    .sdr-campaigns.open .sdr-campaign-row:nth-child(2) { animation-delay: 0.05s; }
+    .sdr-campaigns.open .sdr-campaign-row:nth-child(3) { animation-delay: 0.1s; }
+    .sdr-campaigns.open .sdr-campaign-row:nth-child(4) { animation-delay: 0.15s; }
+    .sdr-campaigns.open .sdr-campaign-row:nth-child(n+5) { animation-delay: 0.2s; }
+
+    /* Appointment table */
+    #tableBody.fx-stagger tr { animation: fxRowIn 0.45s cubic-bezier(0.2,0.8,0.2,1) both; animation-delay: calc(var(--i, 0) * 28ms); }
+    tbody tr:hover td:first-child { box-shadow: inset 2px 0 0 var(--orange); }
+    tbody tr.row-new td:first-child { box-shadow: inset 3px 0 0 var(--orange); }
+    .badge { transition: transform 0.2s ease; }
+    tbody tr:hover .badge { transform: scale(1.06); }
+    .badge-dot { animation: livePulse 2.4s ease-in-out infinite; }
+    tbody tr:nth-child(3n+1) .badge-dot { animation-delay: 0.8s; }
+    tbody tr:nth-child(3n+2) .badge-dot { animation-delay: 1.6s; }
+    .table-search { transition: border-color 0.2s, box-shadow 0.25s, width 0.3s ease; }
+    .table-search:focus { box-shadow: 0 0 0 3px var(--orange-dim), 0 0 18px var(--orange-dim); width: 230px; }
+    .empty-state svg { animation: fxFloat 3s ease-in-out infinite; }
+    .error-banner { animation: fxErr 1.8s ease-in-out infinite; }
+    @keyframes fxErr { 0%, 100% { opacity: 1; } 50% { opacity: 0.65; } }
+
+    /* Performance panel */
+    .perf-item { animation: fxSlideIn 0.45s cubic-bezier(0.2,0.8,0.2,1) both; }
+    .perf-item:nth-child(2) { animation-delay: 0.06s; }
+    .perf-item:nth-child(3) { animation-delay: 0.12s; }
+    .perf-item:nth-child(4) { animation-delay: 0.18s; }
+    .perf-item:nth-child(5) { animation-delay: 0.24s; }
+    .perf-item:nth-child(n+6) { animation-delay: 0.3s; }
+    .perf-bar-fill {
+      background: linear-gradient(90deg, var(--orange), var(--orange-soft), var(--orange)); background-size: 200% 100%;
+      transform-origin: left;
+      animation: fxGrowX 1s cubic-bezier(0.2,0.8,0.2,1) 0.15s backwards, fxLineFlow 2.6s linear infinite;
+    }
+    .perf-bar-fill.low { background: linear-gradient(90deg, var(--red), #f87171, var(--red)); background-size: 200% 100%; }
+    #topPerformers .perf-item:first-child .perf-rank { animation: fxRank 2s ease-in-out infinite; }
+    @keyframes fxRank { 0%, 100% { text-shadow: none; transform: scale(1); } 50% { text-shadow: 0 0 12px var(--orange); transform: scale(1.2); } }
+    .perf-section:first-child .perf-title svg { animation: fxBobUp 1.6s ease-in-out infinite; }
+    .perf-section:last-child .perf-title svg { animation: fxBobDown 1.6s ease-in-out infinite; }
+    @keyframes fxBobUp { 0%, 100% { transform: translateY(2px); } 50% { transform: translateY(-2px); } }
+    @keyframes fxBobDown { 0%, 100% { transform: translateY(-2px); } 50% { transform: translateY(2px); } }
+
+    /* Slack section */
+    .slack-icon svg { animation: fxSlack 5s ease-in-out infinite; }
+    @keyframes fxSlack { 0%, 55%, 100% { transform: rotate(0) scale(1); } 72% { transform: rotate(90deg) scale(1.18); } 88% { transform: rotate(90deg) scale(1); } }
+    .slack-live-dot { position: relative; }
+    .slack-live-dot::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: inherit; animation: fxRipple 2s ease-out infinite; }
+    .slack-count { animation: fxBadgeGlow 2.4s ease-in-out infinite; }
+    #slackTableBody tr { animation: fxRowIn 0.45s cubic-bezier(0.2,0.8,0.2,1) both; }
+    #slackTableBody tr:nth-child(2) { animation-delay: 0.04s; }
+    #slackTableBody tr:nth-child(3) { animation-delay: 0.08s; }
+    #slackTableBody tr:nth-child(4) { animation-delay: 0.12s; }
+    #slackTableBody tr:nth-child(5) { animation-delay: 0.16s; }
+    #slackTableBody tr:nth-child(n+6) { animation-delay: 0.2s; }
+
+    /* Summary bar */
+    .summary-bar { overflow: hidden; }
+    .summary-bar::before {
+      content: ''; position: absolute; left: 0; top: 0; height: 2px; width: 30%; pointer-events: none;
+      background: linear-gradient(90deg, transparent, var(--orange), var(--orange-soft), transparent);
+      opacity: 0.8; animation: fxEdgeRun 8s linear infinite;
+    }
+    .summary-sep { animation: fxSep 2.4s ease-in-out infinite; }
+    @keyframes fxSep { 0%, 100% { box-shadow: 0 0 8px var(--orange-glow); transform: scaleY(1); } 50% { box-shadow: 0 0 16px var(--orange); transform: scaleY(1.3); } }
+
+    /* Viewers who have asked their device for less motion get the dashboard without it */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      #fxCanvas, .fx-shine { display: none; }
+    }
+  </style>
 </head>
 <body>
+
+  <!-- Live background (added) -->
+  <canvas id="fxCanvas" aria-hidden="true"></canvas>
 
   <!-- Header -->
   <div class="header">
@@ -1279,6 +1534,237 @@
     </div>
   </div>
 
+  <!-- ═══════════ LIVE ANIMATION LAYER (added) ═══════════
+       Motion helpers only. The dashboard's own data logic is in the script after this one. -->
+  <script>
+  window.__dashFx = (function() {
+    'use strict';
+
+    var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // ── Counting numbers: "1,234", "56", "43.2%" ──
+    function parseNum(text) {
+      var m = /^(-?[\d,]*\.?\d+)(%?)$/.exec(String(text).trim());
+      if (!m) return null;
+      var s = m[1].replace(/,/g, '');
+      var v = parseFloat(s);
+      if (!isFinite(v)) return null;
+      return { v: v, dec: (s.split('.')[1] || '').length, suf: m[2] };
+    }
+    function fmtNum(v, dec, suf) {
+      return v.toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec }) + suf;
+    }
+    function bump(el) {
+      el.classList.remove('fx-bump');
+      void el.offsetWidth;
+      el.classList.add('fx-bump');
+      setTimeout(function() { el.classList.remove('fx-bump'); }, 650);
+    }
+
+    // Counts an element from the number it shows to newText. Returns false when newText
+    // is not a number (or motion is reduced), so the caller sets the text directly.
+    function tween(el, newText) {
+      el.__fxRun = (el.__fxRun || 0) + 1;            // cancels any count already running
+      if (REDUCED) return false;
+      var to = parseNum(newText);
+      if (!to) return false;
+      var from = parseNum(el.textContent);
+      var start = from ? from.v : 0;
+      var first = !el.hasAttribute('data-fx-seen');
+      el.setAttribute('data-fx-seen', '1');
+      el.setAttribute('data-shown', newText);
+      var run = el.__fxRun, dur = first ? 1400 : 800, t0 = null;
+      function step(ts) {
+        if (el.__fxRun !== run) return;
+        if (t0 === null) t0 = ts;
+        var p = Math.min(1, (ts - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+        el.textContent = p < 1 ? fmtNum(start + (to.v - start) * e, to.dec, to.suf) : newText;
+        if (p < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+      if (!first) bump(el);                           // a changed number gets a small pop
+      return true;
+    }
+    function countFromZero(el) {
+      if (REDUCED || !el) return;
+      var text = el.textContent;
+      if (!parseNum(text)) return;
+      el.textContent = '0';
+      tween(el, text);
+    }
+
+    // ── Staggered entrances for freshly built lists ──
+    function stagger(container, selector, ms) {
+      if (REDUCED || !container) return;
+      var items = container.querySelectorAll(selector);
+      for (var i = 0; i < items.length; i++) items[i].style.setProperty('--i', Math.min(i, 30));
+      container.classList.add('fx-stagger');
+      clearTimeout(container.__fxStagger);
+      container.__fxStagger = setTimeout(function() { container.classList.remove('fx-stagger'); }, ms);
+    }
+    function listBuilt(list, first) { if (first) stagger(list, '.sdr-item-wrap', 1800); }
+    function tableBuilt(tbody) { stagger(tbody, 'tr', 1800); }
+
+    // ── One-time decoration of the static markup ──
+    function decorate() {
+      // light sweep across the cards
+      var cards = document.querySelectorAll('.kpi-card, .status-kpi-card');
+      Array.prototype.forEach.call(cards, function(card, i) {
+        var shine = document.createElement('span');
+        shine.className = 'fx-shine';
+        shine.setAttribute('aria-hidden', 'true');
+        card.style.setProperty('--d', (i * 0.6) + 's');
+        card.insertBefore(shine, card.firstChild);
+      });
+
+      // icons that draw themselves: the pulse line and the tick
+      var pulse = document.querySelector('.kpi-card:nth-child(2) .kpi-icon path');
+      var check = document.querySelector('.kpi-card:nth-child(3) .kpi-icon polyline');
+      [pulse, check].forEach(function(shape) {
+        if (!shape) return;
+        shape.setAttribute('pathLength', '1');
+        shape.setAttribute('class', 'fx-draw');
+      });
+
+      var NS = 'http://www.w3.org/2000/svg';
+      function svgEl(name, attrs) {
+        var el = document.createElementNS(NS, name);
+        Object.keys(attrs).forEach(function(k) { el.setAttribute(k, attrs[k]); });
+        return el;
+      }
+      // dot orbiting the appointment-rate ring
+      var ring = document.getElementById('rateRing');
+      if (ring) {
+        var g = svgEl('g', { 'class': 'fx-orbit' });
+        g.appendChild(svgEl('circle', { cx: '18', cy: '2.1', r: '1.5' }));
+        ring.appendChild(g);
+      }
+      // slowly turning dashed ring and a small orbiting dot around the donut
+      var donut = document.getElementById('donutSvg');
+      if (donut) {
+        donut.appendChild(svgEl('circle', { 'class': 'fx-donut-ring', cx: '60', cy: '60', r: '58.5', fill: 'none',
+          stroke: 'rgba(255,255,255,0.16)', 'stroke-width': '1', 'stroke-dasharray': '2 7' }));
+        var dg = svgEl('g', { 'class': 'fx-donut-dot' });
+        dg.appendChild(svgEl('circle', { cx: '60', cy: '1.5', r: '2', fill: 'var(--orange-soft)' }));
+        donut.appendChild(dg);
+      }
+
+      // cards lean toward the pointer and a soft spotlight follows it
+      if (!REDUCED && window.matchMedia('(hover: hover)').matches) {
+        Array.prototype.forEach.call(document.querySelectorAll('.kpi-card'), function(card) {
+          card.addEventListener('pointermove', function(e) {
+            var r = card.getBoundingClientRect();
+            var x = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+            var y = Math.max(0, Math.min(1, (e.clientY - r.top) / r.height));
+            card.style.setProperty('--ry', ((x - 0.5) * 8).toFixed(2) + 'deg');
+            card.style.setProperty('--rx', ((0.5 - y) * 8).toFixed(2) + 'deg');
+            card.style.setProperty('--mx', (x * 100).toFixed(1) + '%');
+            card.style.setProperty('--my', (y * 100).toFixed(1) + '%');
+            card.classList.add('fx-tilting');
+          });
+          card.addEventListener('pointerleave', function() {
+            card.classList.remove('fx-tilting');
+            card.style.setProperty('--rx', '0deg');
+            card.style.setProperty('--ry', '0deg');
+          });
+        });
+      }
+
+      // small flashes when the refresh time or the Slack count changes
+      if (!REDUCED && 'MutationObserver' in window) {
+        var updated = document.getElementById('lastUpdated');
+        if (updated) new MutationObserver(function() {
+          updated.classList.remove('fx-tick'); void updated.offsetWidth; updated.classList.add('fx-tick');
+        }).observe(updated, { childList: true, characterData: true, subtree: true });
+        var slackCount = document.getElementById('slackCount');
+        if (slackCount) new MutationObserver(function() { bump(slackCount); })
+          .observe(slackCount, { childList: true, characterData: true, subtree: true });
+      }
+    }
+
+    // ── Live background: a drifting network with signals travelling along it ──
+    function startBackground() {
+      var cv = document.getElementById('fxCanvas');
+      if (!cv || REDUCED) return;
+      var ctx = cv.getContext('2d');
+      var W = 0, H = 0, dpr = 1, nodes = [], pulses = [], mx = -9999, my = -9999, lastPulse = 0, lastFrame = 0;
+      function size() {
+        dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+        W = window.innerWidth; H = window.innerHeight;
+        cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+        var count = Math.max(18, Math.min(44, Math.round(W * H / 34000)));
+        while (nodes.length < count) nodes.push({
+          x: Math.random() * W, y: Math.random() * H,
+          vx: (Math.random() - 0.5) * 0.6, vy: (Math.random() - 0.5) * 0.6,
+          r: 1.2 + Math.random() * 2, ph: Math.random() * 6.28, c: Math.random() < 0.6
+        });
+        nodes.length = count; pulses = [];
+      }
+      function draw(time) {
+        requestAnimationFrame(draw);
+        if (time - lastFrame < 32) return;           // about 30 frames a second is plenty here
+        lastFrame = time;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, W, H);
+        var i, j, dx, dy, dist, LINK = 160, links = [];
+        for (i = 0; i < nodes.length; i++) {
+          var n = nodes[i];
+          n.x += n.vx; n.y += n.vy;
+          if (n.x < 0 || n.x > W) { n.vx *= -1; n.x = Math.max(0, Math.min(W, n.x)); }
+          if (n.y < 0 || n.y > H) { n.vy *= -1; n.y = Math.max(0, Math.min(H, n.y)); }
+        }
+        ctx.lineWidth = 1; ctx.strokeStyle = '#f59e3f';
+        for (i = 0; i < nodes.length; i++) for (j = i + 1; j < nodes.length; j++) {
+          dx = nodes[i].x - nodes[j].x; dy = nodes[i].y - nodes[j].y; dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < LINK) {
+            ctx.globalAlpha = (1 - dist / LINK) * 0.16;
+            ctx.beginPath(); ctx.moveTo(nodes[i].x, nodes[i].y); ctx.lineTo(nodes[j].x, nodes[j].y); ctx.stroke();
+            links.push(i, j);
+          }
+        }
+        // links that reach toward the pointer
+        for (i = 0; i < nodes.length; i++) {
+          dx = nodes[i].x - mx; dy = nodes[i].y - my; dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 200) {
+            ctx.globalAlpha = (1 - dist / 200) * 0.38;
+            ctx.beginPath(); ctx.moveTo(nodes[i].x, nodes[i].y); ctx.lineTo(mx, my); ctx.stroke();
+          }
+        }
+        // signals travelling along links, like appointments coming in
+        if (time - lastPulse > 500 && links.length) {
+          lastPulse = time;
+          var k = Math.floor(Math.random() * (links.length / 2)) * 2;
+          pulses.push({ a: links[k], b: links[k + 1], t: 0 });
+        }
+        pulses = pulses.filter(function(p) { return p.t < 1 && nodes[p.a] && nodes[p.b]; });
+        ctx.fillStyle = '#ffd2a1';
+        pulses.forEach(function(p) {
+          p.t += 0.035;
+          var a = nodes[p.a], b = nodes[p.b];
+          ctx.globalAlpha = Math.sin(Math.PI * Math.min(1, p.t)) * 0.85;
+          ctx.beginPath(); ctx.arc(a.x + (b.x - a.x) * p.t, a.y + (b.y - a.y) * p.t, 2.2, 0, 7); ctx.fill();
+        });
+        // nodes, gently breathing
+        for (i = 0; i < nodes.length; i++) {
+          ctx.globalAlpha = 0.34;
+          ctx.fillStyle = nodes[i].c ? '#e8711a' : '#b79cff';
+          ctx.beginPath(); ctx.arc(nodes[i].x, nodes[i].y, Math.max(0.5, nodes[i].r + Math.sin(time / 900 + nodes[i].ph) * 0.7), 0, 7); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+      size();
+      window.addEventListener('resize', size);
+      window.addEventListener('pointermove', function(e) { mx = e.clientX; my = e.clientY; }, { passive: true });
+      document.documentElement.addEventListener('pointerleave', function() { mx = my = -9999; });
+      requestAnimationFrame(draw);
+    }
+
+    try { decorate(); startBackground(); } catch (e) { console.warn('Animation layer skipped:', e); }
+
+    return { tween: tween, countFromZero: countFromZero, listBuilt: listBuilt, tableBuilt: tableBuilt };
+  })();
+  </script>
+
   <script>
   (function() {
     'use strict';
@@ -1350,9 +1836,17 @@
 
     // ── Smooth text updater — only touches DOM if value changed ──
     function smoothUpdate(id, newText) {
-      var el = document.getElementById(id);
+      fxSet(document.getElementById(id), newText);
+    }
+
+    // Sets an element's text. Numbers count up/down to the new value (animation layer);
+    // anything else, or with the layer removed, is set directly as before.
+    function fxSet(el, newText) {
       if (!el) return;
-      if (el.textContent === newText) return;
+      var shown = el.getAttribute('data-shown');
+      if (shown !== null ? shown === newText : el.textContent === newText) return;
+      if (window.__dashFx && window.__dashFx.tween(el, newText)) return;
+      el.removeAttribute('data-shown');
       el.textContent = newText;
     }
 
@@ -1615,6 +2109,7 @@
 
       list.innerHTML = html;
       list.scrollTop = scrollPos;
+      if (window.__dashFx) window.__dashFx.listBuilt(list, isFirstLoad);
 
       // Attach click handlers via event delegation
       list.onclick = function(e) {
@@ -1700,6 +2195,7 @@
           return buildRowHtml(r, i, false);
         }).join('');
         if (tableWrap) tableWrap.scrollTop = scrollTop;
+        if (window.__dashFx) window.__dashFx.tableBuilt(tbody);
         return;
       }
 
@@ -1958,16 +2454,19 @@
         return (pad + i * step).toFixed(1) + ',' + (h - pad - (v / max) * (h - pad * 2)).toFixed(1);
       }).join(' ');
 
+      var lastX = (pad + (values.length - 1) * step).toFixed(1);
+      var lastY = (h - pad - (values[values.length - 1] / max) * (h - pad * 2)).toFixed(1);
       var newHtml =
         '<defs><linearGradient id="sg-' + id + '" x1="0" y1="0" x2="0" y2="1">' +
           '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.3"/>' +
           '<stop offset="100%" stop-color="' + color + '" stop-opacity="0"/>' +
         '</linearGradient></defs>' +
-        '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>' +
-        '<polygon points="' + (pad).toFixed(1) + ',' + h + ' ' + points + ' ' + (pad + (values.length - 1) * step).toFixed(1) + ',' + h + '" fill="url(#sg-' + id + ')"/>';
+        '<polygon class="fx-spark-area" points="' + (pad).toFixed(1) + ',' + h + ' ' + points + ' ' + lastX + ',' + h + '" fill="url(#sg-' + id + ')"/>' +
+        '<polyline class="fx-spark-line" pathLength="1" points="' + points + '" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>' +
+        '<line class="fx-spark-dot" x1="' + lastX + '" y1="' + lastY + '" x2="' + lastX + '" y2="' + (parseFloat(lastY) + 0.01).toFixed(2) + '" stroke="' + color + '" stroke-width="5" stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
 
-      // Only update if sparkline data actually changed
-      if (el.innerHTML !== newHtml) el.innerHTML = newHtml;
+      // Only update (and redraw) if the sparkline data actually changed
+      if (el.__sparkHtml !== newHtml) { el.__sparkHtml = newHtml; el.innerHTML = newHtml; }
     }
 
     // ── Donut chart ──
@@ -1984,46 +2483,48 @@
       smoothUpdate('catClientRejected', (clientRejected || 0).toLocaleString());
 
       var svg = document.getElementById('donutSvg');
-      var oldArcs = svg.querySelectorAll('.donut-arc');
-      oldArcs.forEach(function(a) { a.remove(); });
-
-      if (total > 0) {
-        var r = 50, circ = 2 * Math.PI * r;
-        var slices = [
-          { val: approved, color: 'var(--green)' },
-          { val: rejected, color: 'var(--red)' },
-          { val: other, color: 'var(--text-muted)' }
-        ];
-        var offset = 0;
-        slices.forEach(function(s) {
-          if (s.val <= 0) return;
-          var pct = s.val / total;
-          var arc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      var r = 50, circ = 2 * Math.PI * r;
+      var slices = [
+        { val: approved, color: 'var(--green)' },
+        { val: rejected, color: 'var(--red)' },
+        { val: other, color: 'var(--text-muted)' }
+      ];
+      var offset = 0;
+      slices.forEach(function(s, idx) {
+        var arc = svg.querySelector('.donut-arc[data-slice="' + idx + '"]');
+        if (!arc) {
+          arc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
           arc.setAttribute('class', 'donut-arc');
+          arc.setAttribute('data-slice', String(idx));
           arc.setAttribute('cx', '60');
           arc.setAttribute('cy', '60');
           arc.setAttribute('r', String(r));
           arc.setAttribute('fill', 'none');
           arc.setAttribute('stroke', s.color);
           arc.setAttribute('stroke-width', '14');
-          arc.setAttribute('stroke-dasharray', (pct * circ).toFixed(2) + ' ' + circ.toFixed(2));
-          arc.setAttribute('stroke-dashoffset', (-offset * circ).toFixed(2));
           arc.setAttribute('transform', 'rotate(-90 60 60)');
-          arc.style.transition = 'stroke-dasharray 0.6s ease';
-          svg.appendChild(arc);
-          offset += pct;
-        });
-      }
+          arc.style.strokeDasharray = '0 ' + circ.toFixed(2);
+          arc.style.strokeDashoffset = '0';
+          arc.style.transition = 'stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1), stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1), opacity 0.4s ease';
+          svg.insertBefore(arc, svg.querySelector('.fx-donut-ring'));
+          arc.getBoundingClientRect(); // start from empty so the first draw sweeps in
+        }
+        var pct = (total > 0 && s.val > 0) ? s.val / total : 0;
+        arc.style.opacity = pct > 0 ? '1' : '0';
+        arc.style.strokeDasharray = (pct * circ).toFixed(2) + ' ' + circ.toFixed(2);
+        arc.style.strokeDashoffset = (-offset * circ).toFixed(2);
+        offset += pct;
+      });
 
       // Donut stats — incremental update
       var statsEl = document.getElementById('donutStats');
       var statValues = statsEl.querySelectorAll('.donut-stat-value');
       if (statValues.length >= 2) {
         // Update existing stat values in place
-        if (statValues[0].textContent !== approved.toLocaleString()) statValues[0].textContent = approved.toLocaleString();
-        if (statValues[1].textContent !== rejected.toLocaleString()) statValues[1].textContent = rejected.toLocaleString();
+        fxSet(statValues[0], approved.toLocaleString());
+        fxSet(statValues[1], rejected.toLocaleString());
         if (other > 0 && statValues[2]) {
-          if (statValues[2].textContent !== other.toLocaleString()) statValues[2].textContent = other.toLocaleString();
+          fxSet(statValues[2], other.toLocaleString());
         }
       } else {
         // First render — build stats
@@ -2040,6 +2541,7 @@
             '<div class="donut-stat-bar" style="background:var(--text-muted)"></div>' +
             '<div class="donut-stat-info"><div class="donut-stat-value">' + other.toLocaleString() + '</div><div class="donut-stat-label">Pending</div></div>' +
           '</div>' : '');
+        if (window.__dashFx) statsEl.querySelectorAll('.donut-stat-value').forEach(window.__dashFx.countFromZero);
       }
     }
 
