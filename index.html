@@ -1294,9 +1294,31 @@
     .chart-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 
     /* ── Campaign mix (horizontal stacked bars) ── */
-    .camp-list { display: flex; flex-direction: column; gap: 2px; max-height: 246px; -webkit-mask-image: linear-gradient(180deg, #000 86%, transparent); mask-image: linear-gradient(180deg, #000 86%, transparent); padding-bottom: 18px !important; overflow-y: auto; overflow-x: hidden; margin: 0 -8px; padding: 0 8px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.10) transparent; }
-    .camp-list::-webkit-scrollbar { width: 5px; }
-    .camp-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 100px; }
+    .camp-list {
+      display: flex; flex-direction: column; gap: 2px; max-height: 248px; overflow-y: auto; overflow-x: hidden;
+      margin: 0 -8px; padding: 0 14px 4px 8px; overscroll-behavior: contain;
+      scrollbar-width: none;
+    }
+    .camp-list::-webkit-scrollbar { display: none; }
+    /* custom scroll bar: always visible whenever there are more campaigns than fit */
+    .camp-scroll { position: relative; }
+    .camp-scroll::after {   /* soft fade hinting there is more below */
+      content: ''; position: absolute; left: 0; right: 14px; bottom: 0; height: 28px; pointer-events: none;
+      background: linear-gradient(180deg, transparent, rgba(16,14,18,0.85)); opacity: 0; transition: opacity 0.25s;
+    }
+    .camp-scroll.more-below::after { opacity: 1; }
+    .camp-rail {
+      position: absolute; top: 2px; bottom: 2px; right: -4px; width: 6px; border-radius: 100px;
+      background: rgba(255,255,255,0.07); opacity: 0; pointer-events: none; transition: opacity 0.25s, width 0.2s, right 0.2s;
+      cursor: pointer;
+    }
+    .camp-scroll.scrollable .camp-rail { opacity: 1; pointer-events: auto; }
+    .camp-rail:hover, .camp-rail.dragging { width: 8px; right: -5px; }
+    .camp-rail i {
+      position: absolute; left: 0; right: 0; top: 0; height: 30px; border-radius: 100px; cursor: grab;
+      background: linear-gradient(180deg, var(--orange-soft), var(--orange)); box-shadow: 0 0 10px rgba(232,113,26,0.45);
+    }
+    .camp-rail.dragging i { cursor: grabbing; filter: brightness(1.15); }
     .camp-row {
       padding: 7px 10px; margin: 0 -10px; border-radius: 9px; cursor: pointer; position: relative;
       transition: background 0.2s, box-shadow 0.25s;
@@ -1318,9 +1340,9 @@
     .camp-foot { font-size: 11px; color: var(--text-muted); padding: 8px 0 0; }
     .camp-empty { font-size: 12px; color: var(--text-muted); padding: 30px 0; text-align: center; }
     @media (min-width: 1025px) {
-      /* full-width card: campaigns sit in two columns, no scrolling needed */
+      /* full-width card: campaigns sit in two columns; four rows show, the rest scroll */
       .camp-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 40px; row-gap: 2px;
-        max-height: none; overflow: visible; -webkit-mask-image: none; mask-image: none; padding-bottom: 0 !important; }
+        align-content: start; max-height: 200px; }
       .camp-foot, .camp-empty { grid-column: 1 / -1; }
     }
 
@@ -1564,7 +1586,10 @@
             <span class="lg"><i style="background:#6b665f"></i>Pending</span>
           </div>
         </div>
-        <div class="camp-list" id="campList"><div class="loading-overlay" style="padding:30px"><div class="spinner"></div></div></div>
+        <div class="camp-scroll" id="campScroll">
+          <div class="camp-list" id="campList"><div class="loading-overlay" style="padding:30px"><div class="spinner"></div></div></div>
+          <div class="camp-rail" id="campRail" aria-hidden="true"><i id="campThumb"></i></div>
+        </div>
       </div>
     </div>
   </section>
@@ -2804,7 +2829,7 @@
       });
       var all = Object.keys(map).map(function(k) { return { name: k, t: map[k] }; });
       all.sort(function(a, b) { return b.t.total - a.t.total || b.t.approved - a.t.approved || a.name.localeCompare(b.name); });
-      var top = all.slice(0, 8);
+      var top = all;   // every campaign logged today; the list scrolls
       var max = top.length ? top[0].t.total : 1;
       var search = (document.getElementById('tableSearch').value || '').trim().toLowerCase();
 
@@ -2816,6 +2841,7 @@
         var e = document.createElement('div'); e.className = 'camp-empty'; e.textContent = 'No appointments logged today yet';
         list.appendChild(e);
         setText(document.getElementById('campSub'), 'New appointments appear here as they are logged');
+        syncCampRail();
         return;
       }
       if (emptyEl) emptyEl.remove();
@@ -2878,6 +2904,7 @@
       } else if (foot) foot.remove();
 
       flip(list, '.camp-row', before);
+      syncCampRail();
       var todayTotal = all.reduce(function(n, c) { return n + c.t.total; }, 0);
       setText(document.getElementById('campSub'), todayTotal + ' appointment' + (todayTotal !== 1 ? 's' : '') + ' across ' + all.length + ' campaign' + (all.length !== 1 ? 's' : '') + ' · click one to filter the log');
     }
@@ -2891,6 +2918,50 @@
       if (t.pending) rows.push({ color: '#8a847b', value: t.pending, label: 'Pending / other' });
       showTip(row, row.__key, { value: (t.total ? Math.round(t.approved / t.total * 100) : 0) + '%', label: 'approval rate · ' + t.total + ' total' }, rows);
     }
+
+    // ── Campaign list scroll bar (drawn by the page so it shows on every computer) ──
+    function syncCampRail() {
+      var wrap = document.getElementById('campScroll'), list = document.getElementById('campList');
+      var rail = document.getElementById('campRail'), thumb = document.getElementById('campThumb');
+      if (!wrap || !list || !rail || !thumb) return;
+      var max = list.scrollHeight - list.clientHeight;
+      var scrollable = max > 1;
+      wrap.classList.toggle('scrollable', scrollable);
+      wrap.classList.toggle('more-below', scrollable && list.scrollTop < max - 2);
+      if (!scrollable) return;
+      var railH = rail.clientHeight;
+      var thumbH = Math.max(28, Math.round(railH * list.clientHeight / list.scrollHeight));
+      thumb.style.height = thumbH + 'px';
+      thumb.style.transform = 'translateY(' + Math.round((railH - thumbH) * list.scrollTop / max) + 'px)';
+    }
+    (function wireCampRail() {
+      var list = document.getElementById('campList'), rail = document.getElementById('campRail'), thumb = document.getElementById('campThumb');
+      if (!list || !rail || !thumb) return;
+      list.addEventListener('scroll', function() { hideTip(); syncCampRail(); }, { passive: true });
+      window.addEventListener('resize', syncCampRail);
+      if (window.ResizeObserver) new ResizeObserver(syncCampRail).observe(list);
+      var startY = 0, startTop = 0;
+      thumb.addEventListener('pointerdown', function(e) {
+        e.preventDefault(); e.stopPropagation();
+        startY = e.clientY; startTop = list.scrollTop;
+        rail.classList.add('dragging');
+        thumb.setPointerCapture(e.pointerId);
+      });
+      thumb.addEventListener('pointermove', function(e) {
+        if (!rail.classList.contains('dragging')) return;
+        var max = list.scrollHeight - list.clientHeight;
+        var travel = rail.clientHeight - thumb.offsetHeight;
+        if (travel > 0) list.scrollTop = startTop + (e.clientY - startY) * max / travel;
+      });
+      function stop() { rail.classList.remove('dragging'); }
+      thumb.addEventListener('pointerup', stop);
+      thumb.addEventListener('pointercancel', stop);
+      rail.addEventListener('click', function(e) {   // click the track to jump a page
+        if (e.target === thumb) return;
+        var r = thumb.getBoundingClientRect();
+        list.scrollBy({ top: (e.clientY < r.top ? -1 : 1) * list.clientHeight * 0.9, behavior: PM_REDUCED ? 'auto' : 'smooth' });
+      });
+    })();
 
     function toggleCampaignFilter(name) {
       var input = document.getElementById('tableSearch');
