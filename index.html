@@ -1197,8 +1197,231 @@
       #fxCanvas, .fx-shine { display: none; }
     }
   </style>
+  <!-- ═══════════ PREMIUM UI LAYER ═══════════
+       Insights charts, live-update feedback, loading skeletons and hover readouts. -->
+  <style id="premium-ui">
+    .insights { position: relative; z-index: 1; padding: 0 24px 16px; }
+
+    /* ── Loading skeletons (replaces the "–" flash before the first sync) ── */
+    @keyframes pmShimmer { 0% { background-position: 120% 0; } 100% { background-position: -120% 0; } }
+    body.is-loading .kpi-value, body.is-loading .status-kpi-val, body.is-loading .summary-value,
+    body.is-loading .donut-center-value, body.is-loading .kpi-secondary, body.is-loading .kpi-delta,
+    body.is-loading .chart-sub {
+      color: transparent !important; -webkit-text-fill-color: transparent; text-shadow: none !important;
+      background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.11) 50%, rgba(255,255,255,0.04) 100%);
+      background-size: 220% 100%; animation: pmShimmer 1.4s ease-in-out infinite !important;
+      border-radius: 6px; min-width: 2.4em; display: inline-block;
+    }
+    body.is-loading .kpi-secondary, body.is-loading .kpi-delta, body.is-loading .chart-sub { min-width: 60%; min-height: 12px; }
+    body.is-loading .kpi-value { display: block; width: 42%; }
+    body.is-loading .kpi-secondary, body.is-loading .kpi-delta { display: block; width: 68%; }
+    body.is-loading .kpi-chip { visibility: hidden; }
+
+    /* ── KPI "today" chips ── */
+    .kpi-chip {
+      margin-left: auto; font-size: 11px; font-weight: 600; letter-spacing: 0.01em; text-transform: none;
+      padding: 2px 9px; border-radius: 999px; font-variant-numeric: tabular-nums; white-space: nowrap;
+      color: var(--orange-soft); background: var(--orange-dim); border: 1px solid rgba(232,113,26,0.22);
+      transition: background 0.3s, color 0.3s, border-color 0.3s;
+    }
+    .kpi-chip.green { color: var(--green); background: var(--green-dim); border-color: rgba(34,197,94,0.25); }
+    .kpi-chip.red { color: #f87171; background: var(--red-dim); border-color: rgba(239,68,68,0.25); }
+    .kpi-chip.quiet { color: var(--text-muted); background: rgba(255,255,255,0.04); border-color: var(--glass-border); }
+
+    /* ── Card glow when its number changes ── */
+    @keyframes pmFlash {
+      0% { box-shadow: 0 0 0 0 rgba(232,113,26,0.55), 0 0 0 rgba(232,113,26,0); border-color: rgba(245,158,63,0.7); }
+      40% { box-shadow: 0 0 0 4px rgba(232,113,26,0.12), 0 0 36px rgba(232,113,26,0.28); }
+      100% { box-shadow: 0 0 0 0 rgba(232,113,26,0), 0 0 0 rgba(232,113,26,0); }
+    }
+    .kpi-card.pm-flash, .status-kpi-card.pm-flash { animation: pmFlash 1.3s ease-out; }
+
+    .kpi-sparkline { display: block; width: 100%; }
+
+    /* ── Appointment-rate card: approval mix bar ── */
+    .rate-split { display: flex; gap: 2px; height: 6px; margin-top: 22px; border-radius: 3px; overflow: hidden; background: rgba(255,255,255,0.05); }
+    .rate-split i { display: block; height: 100%; width: 0; transition: width 0.9s cubic-bezier(0.2,0.8,0.2,1); }
+    .rate-split i.zero { display: none; }
+    .rate-split .a { background: linear-gradient(90deg, var(--green), #34d36c); box-shadow: 0 0 10px rgba(34,197,94,0.35); }
+    .rate-split .r { background: linear-gradient(90deg, var(--red), #f26464); }
+    .rate-split .p { background: #6b665f; }
+    .rate-split-cap { display: flex; justify-content: space-between; margin-top: 7px; font-size: 10.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .rate-split-cap b { color: var(--text-secondary); font-weight: 600; }
+
+    /* ── Sparkline: a light pulse travelling along the flat line ── */
+    @keyframes pmComet { 0% { stroke-dashoffset: 0.16; } 100% { stroke-dashoffset: -1; } }
+    .fx-spark-comet {
+      stroke-dasharray: 0.16 1; stroke-dashoffset: 0.16; opacity: 0;
+      animation: fxFade 0.4s ease 1.8s forwards, pmComet 3.2s cubic-bezier(0.45,0,0.25,1) 1.8s infinite;
+    }
+
+    /* ── Insights row ── */
+    .insights-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .insights-heading { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .insights-title {
+      font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--text-secondary);
+    }
+    .insights-title::before {
+      content: ''; display: inline-block; width: 3px; height: 0.95em; margin-right: 8px; vertical-align: -2px; border-radius: 2px;
+      background: var(--orange); box-shadow: 0 0 8px var(--orange-glow);
+    }
+    .insights-scope {
+      font-size: 11px; font-weight: 600; color: var(--text); padding: 3px 10px; border-radius: 999px;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); white-space: nowrap;
+      transition: background 0.3s, border-color 0.3s, color 0.3s;
+    }
+    .insights-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .chart-card {
+      background: var(--glass); border: 1px solid var(--glass-border); border-radius: 14px; padding: 18px 20px 14px;
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); position: relative; overflow: hidden;
+      transition: border-color 0.3s, box-shadow 0.3s; min-width: 0;
+      animation: fadeInUp 0.5s ease 0.38s both;
+    }
+    .chart-card:hover { border-color: rgba(232,113,26,0.18); box-shadow: 0 6px 30px rgba(0,0,0,0.25); }
+    .chart-card::before {
+      content: ''; position: absolute; left: 0; top: 0; height: 2px; width: 35%; pointer-events: none;
+      background: linear-gradient(90deg, transparent, var(--orange), var(--orange-soft), transparent);
+      opacity: 0.6; animation: fxEdgeRun 9s linear infinite;
+    }
+    .camp-card::before { animation-delay: -4s; }
+    .chart-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+    .chart-title { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 600; color: var(--text); }
+    .chart-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; font-variant-numeric: tabular-nums; min-height: 18px; transition: opacity 0.3s; }
+    .chart-sub b { color: var(--text); font-weight: 600; }
+    .chart-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px; color: var(--text-secondary); padding-top: 3px; }
+    .chart-legend .lg { display: inline-flex; align-items: center; gap: 6px; }
+    .chart-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+    /* ── Campaign mix (horizontal stacked bars) ── */
+    .camp-list { display: flex; flex-direction: column; gap: 2px; max-height: 246px; -webkit-mask-image: linear-gradient(180deg, #000 86%, transparent); mask-image: linear-gradient(180deg, #000 86%, transparent); padding-bottom: 18px !important; overflow-y: auto; overflow-x: hidden; margin: 0 -8px; padding: 0 8px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.10) transparent; }
+    .camp-list::-webkit-scrollbar { width: 5px; }
+    .camp-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 100px; }
+    .camp-row {
+      padding: 7px 10px; margin: 0 -10px; border-radius: 9px; cursor: pointer; position: relative;
+      transition: background 0.2s, box-shadow 0.25s;
+    }
+    .camp-row:hover, .camp-row:focus-visible { background: rgba(255,255,255,0.045); outline: none; }
+    .camp-row.active { background: var(--orange-dim); box-shadow: inset 3px 0 0 var(--orange); }
+    .camp-row.pm-in { animation: fxSlideIn 0.45s cubic-bezier(0.2,0.8,0.2,1) both; }
+    .camp-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+    .camp-name { font-size: 12.5px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+    .camp-val { font-size: 11.5px; color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+    .camp-val b { color: var(--text); font-weight: 700; font-family: 'Space Grotesk', sans-serif; font-size: 13px; }
+    .camp-track { display: flex; gap: 2px; height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; }
+    .camp-seg { height: 100%; width: 0; transition: width 0.85s cubic-bezier(0.2,0.8,0.2,1); flex-shrink: 0; }
+    .camp-seg.zero { display: none; }
+    .camp-seg.approved { background: linear-gradient(90deg, var(--green), #34d36c); }
+    .camp-seg.rejected { background: linear-gradient(90deg, var(--red), #f26464); }
+    .camp-seg.pending { background: #6b665f; }
+    .camp-seg.last { border-radius: 0 4px 4px 0; }
+    .camp-foot { font-size: 11px; color: var(--text-muted); padding: 8px 0 0; }
+    .camp-empty { font-size: 12px; color: var(--text-muted); padding: 30px 0; text-align: center; }
+    @media (min-width: 1025px) {
+      /* full-width card: campaigns sit in two columns, no scrolling needed */
+      .camp-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 40px; row-gap: 2px;
+        max-height: none; overflow: visible; -webkit-mask-image: none; mask-image: none; padding-bottom: 0 !important; }
+      .camp-foot, .camp-empty { grid-column: 1 / -1; }
+    }
+
+    /* ── Shared chart tooltip ── */
+    .chart-tip {
+      position: fixed; z-index: 300; pointer-events: none; min-width: 168px; max-width: 260px;
+      padding: 10px 12px; border-radius: 10px; font-size: 12px; color: var(--text);
+      background: rgba(18,18,20,0.94); border: 1px solid rgba(255,255,255,0.10);
+      box-shadow: 0 12px 34px rgba(0,0,0,0.5), 0 0 0 1px rgba(232,113,26,0.08);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      opacity: 0; transform: translateY(4px) scale(0.98); transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+    .chart-tip.show { opacity: 1; transform: none; }
+    .chart-tip .tip-title { font-size: 11px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600; letter-spacing: 0.02em; }
+    .chart-tip .tip-row { display: flex; align-items: center; gap: 8px; padding: 2px 0; font-variant-numeric: tabular-nums; }
+    .chart-tip .tip-row b { font-family: 'Space Grotesk', sans-serif; font-size: 13px; min-width: 22px; text-align: right; }
+    .chart-tip .tip-row span { color: var(--text-secondary); }
+    .chart-tip .tip-key { width: 12px; height: 2px; border-radius: 2px; flex-shrink: 0; }
+    .chart-tip .tip-total { border-bottom: 1px solid var(--divider); padding-bottom: 5px; margin-bottom: 3px; }
+    .chart-tip .tip-total b { font-size: 16px; }
+
+    /* ── Donut hover readout ── */
+    .donut-arc { cursor: pointer; }
+    .donut-arc.hot { stroke-width: 19; filter: drop-shadow(0 0 6px currentColor); }
+    #donutSvg.has-hot .donut-arc:not(.hot) { opacity: 0.35 !important; }
+    .donut-center { pointer-events: none; }
+    .donut-center > .donut-center-value, .donut-center > .donut-center-label { transition: opacity 0.2s; }
+    .donut-hover {
+      position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.2s; white-space: nowrap;
+    }
+    .donut-chart.hovering .donut-center > .donut-center-value,
+    .donut-chart.hovering .donut-center > .donut-center-label { opacity: 0; }
+    .donut-chart.hovering .donut-hover { opacity: 1; }
+    .donut-hover-val { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; line-height: 1; }
+    .donut-hover-label { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 3px; }
+    .donut-stat { cursor: pointer; border-radius: 8px; padding: 4px 6px; margin: -4px -6px; transition: background 0.2s; }
+    .donut-stat:hover, .donut-stat.hot { background: rgba(255,255,255,0.05); }
+    .donut-stat-pct { display: block; font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; line-height: 1.3; }
+
+    /* ── SDR list: approval meter under each name ── */
+    .sdr-meter { height: 3px; margin: -5px 16px 8px; border-radius: 2px; background: rgba(255,255,255,0.05); overflow: hidden; }
+    .sdr-meter i {
+      display: block; height: 100%; width: 0; border-radius: 2px;
+      background: linear-gradient(90deg, var(--orange), var(--orange-soft), var(--orange)); background-size: 200% 100%;
+      transition: width 0.9s cubic-bezier(0.2,0.8,0.2,1); animation: fxLineFlow 3s linear infinite;
+      box-shadow: 0 0 8px rgba(232,113,26,0.35);
+    }
+    .sdr-item-wrap.active .sdr-meter i { box-shadow: 0 0 12px rgba(232,113,26,0.7); }
+
+    /* ── Performers: animate only on entry so reordering never restarts the bars ── */
+    .perf-item { animation: none; }
+    .perf-item.pm-in { animation: fxSlideIn 0.45s cubic-bezier(0.2,0.8,0.2,1) both; }
+    .perf-bar-fill { animation: fxLineFlow 2.6s linear infinite; }
+    .perf-item.pm-in .perf-bar-fill { animation: fxGrowX 1s cubic-bezier(0.2,0.8,0.2,1) 0.15s backwards, fxLineFlow 2.6s linear infinite; }
+
+    /* ── Live toasts ── */
+    .toast-stack { position: fixed; bottom: 22px; right: 22px; z-index: 250; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+    .toast {
+      display: flex; align-items: flex-start; gap: 10px; min-width: 240px; max-width: 320px; padding: 11px 14px;
+      border-radius: 12px; background: rgba(20,20,22,0.92); border: 1px solid rgba(232,113,26,0.28);
+      box-shadow: 0 14px 36px rgba(0,0,0,0.45), 0 0 24px rgba(232,113,26,0.12);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      animation: pmToastIn 0.45s cubic-bezier(0.2,0.8,0.2,1) both;
+    }
+    .toast.out { animation: pmToastOut 0.35s ease forwards; }
+    @keyframes pmToastIn { from { opacity: 0; transform: translateY(16px) scale(0.97); } to { opacity: 1; transform: none; } }
+    @keyframes pmToastOut { to { opacity: 0; transform: translateX(24px); } }
+    .toast-icon {
+      width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      background: var(--orange-dim); color: var(--orange-soft); font-weight: 700; font-size: 14px;
+    }
+    .toast.green .toast-icon { background: var(--green-dim); color: var(--green); }
+    .toast-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+    .toast-body { font-size: 11.5px; color: var(--text-secondary); margin-top: 1px; }
+
+    @media (max-width: 1440px) and (min-width: 1025px) {
+      .kpi-card .kpi-label { letter-spacing: 0.02em; white-space: nowrap; }
+      .kpi-chip { font-size: 10px; padding: 2px 7px; }
+    }
+    @media (max-width: 1200px) and (min-width: 1025px) {
+      .kpi-card { padding: 20px; }
+      .kpi-card .kpi-label { font-size: 11px; gap: 6px; }
+      .kpi-card .kpi-icon { width: 24px; height: 24px; }
+      .chip-word { display: none; }
+    }
+    @media (max-width: 600px) {
+      .insights { padding: 0 16px 12px; }
+      .insights-heading { flex-wrap: wrap; row-gap: 6px; }
+      .chart-card { padding: 16px 14px 12px; }
+      .chart-legend { gap: 10px; }
+      .toast-stack { left: 16px; right: 16px; bottom: 16px; }
+      .toast { max-width: none; }
+      .kpi-chip { font-size: 10px; padding: 2px 7px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .fx-spark-comet { display: none; }
+    }
+  </style>
 </head>
-<body>
+<body class="is-loading">
 
   <!-- Live background (added) -->
   <canvas id="fxCanvas" aria-hidden="true"></canvas>
@@ -1229,6 +1452,7 @@
       <div class="kpi-label">
         <span class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg></span>
         Total Appointments
+        <span class="kpi-chip quiet" id="chipTotal">0 today</span>
       </div>
       <div class="kpi-value" id="kpiTotal">–</div>
       <div class="kpi-secondary" id="kpiTotalSub">All campaigns combined</div>
@@ -1241,6 +1465,8 @@
       </div>
       <div class="kpi-value" id="kpiRate">–</div>
       <div class="kpi-delta" id="kpiRateSub"></div>
+      <div class="rate-split" id="rateSplit" aria-hidden="true"><i class="a"></i><i class="r"></i><i class="p"></i></div>
+      <div class="rate-split-cap" id="rateSplitCap"></div>
       <svg class="kpi-progress-ring" id="rateRing" viewBox="0 0 36 36">
         <circle class="ring-bg" cx="18" cy="18" r="15.9"/>
         <circle class="ring-fill" cx="18" cy="18" r="15.9" stroke="var(--orange)" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 18 18)"/>
@@ -1250,6 +1476,7 @@
       <div class="kpi-label">
         <span class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>
         Approved
+        <span class="kpi-chip quiet" id="chipApproved">0 today</span>
       </div>
       <div class="kpi-value green" id="kpiApproved">–</div>
       <div class="kpi-secondary" id="kpiApprovedSub">—</div>
@@ -1259,6 +1486,7 @@
       <div class="kpi-label">
         <span class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></span>
         Rejected
+        <span class="kpi-chip quiet" id="chipRejected">0 today</span>
       </div>
       <div class="kpi-value red" id="kpiRejected">–</div>
       <div class="kpi-secondary" id="kpiRejectedSub">—</div>
@@ -1306,6 +1534,7 @@
         <div class="donut-center">
           <div class="donut-center-value" id="donutTotal">–</div>
           <div class="donut-center-label">Total</div>
+          <div class="donut-hover"><div class="donut-hover-val" id="donutHoverVal"></div><div class="donut-hover-label" id="donutHoverLabel"></div></div>
         </div>
       </div>
     </div>
@@ -1314,6 +1543,32 @@
       <div class="donut-stats" id="donutStats"></div>
     </div>
   </div>
+  <!-- Performance Insights: today's campaign mix (follows the SDR picked in the list) -->
+  <section class="insights" id="insights" aria-label="Performance insights">
+    <div class="insights-bar">
+      <div class="insights-heading">
+        <span class="insights-title">Performance Insights</span>
+        <span class="insights-scope" id="insightsScope">All SDRs · Today</span>
+      </div>
+    </div>
+    <div class="insights-grid">
+      <div class="chart-card camp-card">
+        <div class="chart-head">
+          <div>
+            <div class="chart-title">Today's Campaign Mix</div>
+            <div class="chart-sub" id="campSub"></div>
+          </div>
+          <div class="chart-legend" aria-hidden="true">
+            <span class="lg"><i style="background:var(--green)"></i>Approved</span>
+            <span class="lg"><i style="background:var(--red)"></i>Rejected</span>
+            <span class="lg"><i style="background:#6b665f"></i>Pending</span>
+          </div>
+        </div>
+        <div class="camp-list" id="campList"><div class="loading-overlay" style="padding:30px"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+  </section>
+
   <!-- Main Layout -->
   <div class="main-layout">
     <!-- SDR Panel -->
@@ -1389,6 +1644,9 @@
       <span class="summary-value" style="color:var(--red)" id="sumRejected">–</span>
     </div>
   </div>
+
+  <div class="chart-tip" id="chartTip" role="tooltip"></div>
+  <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
   <!-- ═══════════ LIVE ANIMATION LAYER (added) ═══════════
        Motion helpers only. The dashboard's own data logic is in the script after this one. -->
@@ -1705,6 +1963,8 @@
 
     // ── Data fetching (fetch with JSONP fallback) ──
     function fetchData() {
+      if (document.hidden && !isFirstLoad) return;   // paused while the tab is in the background
+      if (!beginFetch()) return;                      // previous request still running
       var baseUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq';
 
       // Strategy 1: fetch API (works in artifact viewers where script-src blocks JSONP)
@@ -1722,6 +1982,7 @@
             var json = text.substring(start + 1, end);
             var data = JSON.parse(json);
             processData(data);
+            endFetch();
           })
           .catch(function(err) {
             console.warn('Fetch failed (' + err.message + '), trying JSONP…');
@@ -1742,6 +2003,7 @@
       function cleanup() {
         if (done) return;
         done = true;
+        endFetch();
         delete window[cbName];
         if (script.parentNode) script.parentNode.removeChild(script);
         clearTimeout(timer);
@@ -1774,6 +2036,7 @@
 
     function processData(data) {
       hideError();
+      document.body.classList.remove('is-loading');
       var newRows = [];
 
       if (data && data.table && data.table.rows) {
@@ -1887,6 +2150,13 @@
       renderSdrListIncremental();
       renderTableIncremental(filtered, oldRows);
       renderPerformanceIncremental();
+
+      // Insights, today chips and live feedback
+      renderInsights();
+      renderTodayChips();
+      flashCards(total, approvedCount, rejectedCount, rate);
+      renderRateSplit(total, approvedCount, rejectedCount);
+      if (!isFirstLoad) announceChanges(oldRows, allRows);
     }
 
     // ── SDR List with Campaign Breakdown ──
@@ -1927,15 +2197,33 @@
 
       var list = document.getElementById('sdrList');
 
-      // Full rebuild — simple and reliable
-      var scrollPos = list.scrollTop;
-      var html = '';
-      sdrs.forEach(function(s) {
-        var isActive = activeSdr === s.name;
-        var isExpanded = expandedSdr === s.name;
-        var titleHtml = s.title ? ' <span style="color:var(--text-muted);font-size:10px;font-weight:400">(' + esc(s.title) + ')</span>' : '';
+      // In-place update: rows are reused, re-ranked rows glide to their new spot
+      var spinner = list.querySelector('.loading-overlay');
+      if (spinner) spinner.remove();
+      var firstBuild = !list.querySelector('.sdr-item-wrap');
+      var maxApproved = sdrs.reduce(function(m, s) { return Math.max(m, s.data.approved); }, 0) || 1;
+      var before = firstBuild ? {} : measure(list, '.sdr-item-wrap');
+      var existing = {};
+      list.querySelectorAll('.sdr-item-wrap').forEach(function(li) { existing[li.__key] = li; });
 
-        // Campaign rows
+      sdrs.forEach(function(s, idx) {
+        var li = existing[s.name];
+        if (!li) {
+          li = document.createElement('li');
+          li.className = 'sdr-item-wrap';
+          li.__key = s.name;
+          li.setAttribute('data-sdr', s.name);
+          var titleHtml = s.title ? ' <span style="color:var(--text-muted);font-size:10px;font-weight:400">(' + esc(s.title) + ')</span>' : '';
+          li.innerHTML = '<div class="sdr-item">' +
+              '<span class="sdr-name">' + esc(s.name) + titleHtml + '</span>' +
+              '<span class="sdr-count">0</span>' +
+            '</div>' +
+            '<div class="sdr-meter"><i></i></div>' +
+            '<div class="sdr-campaigns"></div>';
+          li.querySelector('.sdr-item').setAttribute('data-sdr-click', s.name);
+        }
+        li.classList.toggle('active', activeSdr === s.name);
+
         var campHtml = '';
         var campArr = Object.keys(s.data.campaigns).map(function(c) {
           return { name: c, total: s.data.campaigns[c].total, approved: s.data.campaigns[c].approved };
@@ -1950,19 +2238,21 @@
               '<span class="sdr-campaign-count">' + c.approved + ' / ' + c.total + '</span></div>';
           });
         }
+        var campDiv = li.querySelector('.sdr-campaigns');
+        campDiv.classList.toggle('open', expandedSdr === s.name);
+        if (campDiv.__html !== campHtml) { campDiv.innerHTML = campHtml; campDiv.__html = campHtml; }
 
-        html += '<li class="sdr-item-wrap' + (isActive ? ' active' : '') + '" data-sdr="' + esc(s.name) + '">' +
-          '<div class="sdr-item" data-sdr-click="' + esc(s.name) + '">' +
-            '<span class="sdr-name">' + esc(s.name) + titleHtml + '</span>' +
-            '<span class="sdr-count">' + s.data.approved + '</span>' +
-          '</div>' +
-          '<div class="sdr-campaigns' + (isExpanded ? ' open' : '') + '">' + campHtml + '</div>' +
-        '</li>';
+        fxSet(li.querySelector('.sdr-count'), String(s.data.approved));
+        var meter = li.querySelector('.sdr-meter i');
+        var w = (s.data.approved / maxApproved * 100).toFixed(1) + '%';
+        meter.__w = w;
+        if (firstBuild && !PM_REDUCED) {
+          requestAnimationFrame(function() { requestAnimationFrame(function() { meter.style.width = meter.__w; }); });
+        } else meter.style.width = w;
+        placeAt(list, li, idx);
       });
-
-      list.innerHTML = html;
-      list.scrollTop = scrollPos;
-      if (window.__dashFx) window.__dashFx.listBuilt(list, isFirstLoad);
+      flip(list, '.sdr-item-wrap', before);
+      if (firstBuild && window.__dashFx) window.__dashFx.listBuilt(list, true);
 
       // Attach click handlers via event delegation
       list.onclick = function(e) {
@@ -1996,6 +2286,7 @@
         var filtered = filterByActiveSdr(allRows);
         renderTableIncremental(filtered, allRows);
         renderPerformanceIncremental();
+        renderInsights();
       };
     }
 
@@ -2182,70 +2473,59 @@
       var lowEntries = sorted.filter(function(e) { return e[1].approved <= 1; });
 
       if (topEntries.length === 0) {
-        var topEl = document.getElementById('topPerformers');
-        if (topEl) topEl.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px 0">No SDRs with 4+ appointments yet</div>';
+        setEmpty(document.getElementById('topPerformers'), 'No SDRs with 4+ appointments yet');
       } else {
         updatePerfPanel('topPerformers', topEntries, maxApproved, false);
       }
 
       if (lowEntries.length === 0) {
-        var lowEl = document.getElementById('lowPerformers');
-        if (lowEl) lowEl.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px 0">All SDRs have 2+ appointments</div>';
+        setEmpty(document.getElementById('lowPerformers'), 'All SDRs have 2+ appointments');
       } else {
         updatePerfPanel('lowPerformers', lowEntries, maxApproved, true);
       }
     }
 
+    // Writes an empty-state message only when it changes (no flicker on every refresh)
+    function setEmpty(container, msg) {
+      if (!container || container.__empty === msg) return;
+      container.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px 0">' + esc(msg) + '</div>';
+      container.__empty = msg;
+    }
+
+    // Keyed, in-place update: names keep their element, rank changes glide into place
     function updatePerfPanel(containerId, entries, maxApproved, isLow) {
       var container = document.getElementById(containerId);
       if (!container) return;
+      if (entries.length === 0) { setEmpty(container, 'No data yet'); return; }
+      if (container.__empty || container.querySelector('.loading-overlay')) { container.innerHTML = ''; container.__empty = ''; }
 
-      if (entries.length === 0) {
-        if (!container.querySelector('[style*="No data"]') && container.textContent.indexOf('No data') === -1) {
-          container.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px 0">No data yet</div>';
-        }
-        return;
-      }
-
-      var existingItems = container.querySelectorAll('.perf-item');
-
-      // If count differs, rebuild (rare)
-      if (existingItems.length !== entries.length) {
-        container.innerHTML = entries.map(function(entry, i) {
-          var name = entry[0], data = entry[1];
-          var rankText = isLow ? '—' : String(i + 1);
-          var rankStyle = isLow ? ' style="color:var(--red)"' : '';
-          var barClass = isLow ? ' low' : '';
-          var countStyle = isLow ? ' style="color:var(--red)"' : '';
-          return '<div class="perf-item">' +
-            '<span class="perf-rank"' + rankStyle + '>' + rankText + '</span>' +
-            '<div class="perf-info">' +
-              '<div class="perf-name">' + esc(name) + '</div>' +
-              '<div class="perf-bar-track">' +
-                '<div class="perf-bar-fill' + barClass + '" style="width:' + (data.approved / maxApproved * 100).toFixed(0) + '%"></div>' +
-              '</div>' +
-            '</div>' +
-            '<span class="perf-count"' + countStyle + '>' + data.approved + '</span>' +
-            '</div>';
-        }).join('');
-        return;
-      }
-
-      // Update existing items in place
+      var safeMax = maxApproved || 1;
+      var before = measure(container, '.perf-item');
+      var existing = {}, keep = {};
+      container.querySelectorAll('.perf-item').forEach(function(el) { existing[el.__key] = el; });
       entries.forEach(function(entry, i) {
-        var item = existingItems[i];
-        if (!item) return;
         var name = entry[0], data = entry[1];
-
-        var nameEl = item.querySelector('.perf-name');
-        if (nameEl && nameEl.textContent !== name) nameEl.textContent = name;
-
-        var barFill = item.querySelector('.perf-bar-fill');
-        if (barFill) barFill.style.width = (data.approved / maxApproved * 100).toFixed(0) + '%';
-
-        var countEl = item.querySelector('.perf-count');
-        if (countEl && countEl.textContent !== String(data.approved)) countEl.textContent = data.approved;
+        var item = existing[name];
+        if (!item) {
+          item = document.createElement('div');
+          item.className = 'perf-item' + (PM_REDUCED ? '' : ' pm-in');
+          item.__key = name;
+          var red = isLow ? ' style="color:var(--red)"' : '';
+          item.innerHTML = '<span class="perf-rank"' + red + '></span>' +
+            '<div class="perf-info"><div class="perf-name"></div>' +
+              '<div class="perf-bar-track"><div class="perf-bar-fill' + (isLow ? ' low' : '') + '"></div></div></div>' +
+            '<span class="perf-count"' + red + '>0</span>';
+          item.querySelector('.perf-name').textContent = name;
+          (function(el) { setTimeout(function() { el.classList.remove('pm-in'); }, 1400); })(item);
+        }
+        keep[name] = true;
+        setText(item.querySelector('.perf-rank'), isLow ? '—' : String(i + 1));
+        item.querySelector('.perf-bar-fill').style.width = (data.approved / safeMax * 100).toFixed(0) + '%';
+        fxSet(item.querySelector('.perf-count'), String(data.approved));
+        placeAt(container, item, i);
       });
+      Object.keys(existing).forEach(function(k) { if (!keep[k]) existing[k].remove(); });
+      flip(container, '.perf-item', before);
     }
 
     function updateTimestamp() {
@@ -2317,6 +2597,7 @@
         '</linearGradient></defs>' +
         '<polygon class="fx-spark-area" points="' + (pad).toFixed(1) + ',' + h + ' ' + points + ' ' + lastX + ',' + h + '" fill="url(#sg-' + id + ')"/>' +
         '<polyline class="fx-spark-line" pathLength="1" points="' + points + '" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>' +
+        '<polyline class="fx-spark-comet" pathLength="1" points="' + points + '" fill="none" stroke="' + color + '" stroke-width="3" stroke-linecap="round" vector-effect="non-scaling-stroke" style="filter:drop-shadow(0 0 4px ' + color + ')"/>' +
         '<line class="fx-spark-dot" x1="' + lastX + '" y1="' + lastY + '" x2="' + lastX + '" y2="' + (parseFloat(lastY) + 0.01).toFixed(2) + '" stroke="' + color + '" stroke-width="5" stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
 
       // Only update (and redraw) if the sparkline data actually changed
@@ -2344,6 +2625,8 @@
         { val: other, color: 'var(--text-muted)' }
       ];
       var offset = 0;
+      var nonZero = slices.filter(function(s) { return s.val > 0; }).length;
+      var gap = nonZero > 1 ? 2.5 : 0;   // thin surface gap between slices
       slices.forEach(function(s, idx) {
         var arc = svg.querySelector('.donut-arc[data-slice="' + idx + '"]');
         if (!arc) {
@@ -2359,50 +2642,437 @@
           arc.setAttribute('transform', 'rotate(-90 60 60)');
           arc.style.strokeDasharray = '0 ' + circ.toFixed(2);
           arc.style.strokeDashoffset = '0';
-          arc.style.transition = 'stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1), stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1), opacity 0.4s ease';
+          arc.style.transition = 'stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1), stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease, stroke-width 0.25s ease, filter 0.25s ease';
+          arc.style.color = s.color;
           svg.insertBefore(arc, svg.querySelector('.fx-donut-ring'));
           arc.getBoundingClientRect(); // start from empty so the first draw sweeps in
         }
         var pct = (total > 0 && s.val > 0) ? s.val / total : 0;
         arc.style.opacity = pct > 0 ? '1' : '0';
-        arc.style.strokeDasharray = (pct * circ).toFixed(2) + ' ' + circ.toFixed(2);
+        arc.__info = { val: s.val, pct: pct, color: s.color };
+        arc.style.strokeDasharray = Math.max(0, pct * circ - gap).toFixed(2) + ' ' + circ.toFixed(2);
         arc.style.strokeDashoffset = (-offset * circ).toFixed(2);
         offset += pct;
       });
 
-      // Donut stats — incremental update
+      // Donut legend — updates in place, rebuilt only when the Pending entry appears or disappears
       var statsEl = document.getElementById('donutStats');
-      var statValues = statsEl.querySelectorAll('.donut-stat-value');
-      if (statValues.length >= 2) {
-        // Update existing stat values in place
-        fxSet(statValues[0], approved.toLocaleString());
-        fxSet(statValues[1], rejected.toLocaleString());
-        if (other > 0 && statValues[2]) {
-          fxSet(statValues[2], other.toLocaleString());
-        }
-      } else {
-        // First render — build stats
-        statsEl.innerHTML =
-          '<div class="donut-stat">' +
-            '<div class="donut-stat-bar" style="background:var(--green)"></div>' +
-            '<div class="donut-stat-info"><div class="donut-stat-value">' + approved.toLocaleString() + '</div><div class="donut-stat-label">Approved</div></div>' +
-          '</div>' +
-          '<div class="donut-stat">' +
-            '<div class="donut-stat-bar" style="background:var(--red)"></div>' +
-            '<div class="donut-stat-info"><div class="donut-stat-value">' + rejected.toLocaleString() + '</div><div class="donut-stat-label">Rejected</div></div>' +
-          '</div>' +
-          (other > 0 ? '<div class="donut-stat">' +
-            '<div class="donut-stat-bar" style="background:var(--text-muted)"></div>' +
-            '<div class="donut-stat-info"><div class="donut-stat-value">' + other.toLocaleString() + '</div><div class="donut-stat-label">Pending</div></div>' +
-          '</div>' : '');
+      var defs = [
+        { v: approved, c: 'var(--green)', l: 'Approved' },
+        { v: rejected, c: 'var(--red)', l: 'Rejected' },
+        { v: other, c: 'var(--text-muted)', l: 'Pending' }
+      ].slice(0, other > 0 ? 3 : 2);
+      if (statsEl.querySelectorAll('.donut-stat').length !== defs.length) {
+        statsEl.innerHTML = defs.map(function(d) {
+          return '<div class="donut-stat">' +
+            '<div class="donut-stat-bar" style="background:' + d.c + '"></div>' +
+            '<div class="donut-stat-info"><div class="donut-stat-value">' + d.v.toLocaleString() + '</div>' +
+            '<div class="donut-stat-label">' + d.l + ' <span class="donut-stat-pct"></span></div></div>' +
+          '</div>';
+        }).join('');
         if (window.__dashFx) statsEl.querySelectorAll('.donut-stat-value').forEach(window.__dashFx.countFromZero);
+      } else {
+        var statValues = statsEl.querySelectorAll('.donut-stat-value');
+        defs.forEach(function(d, i) { fxSet(statValues[i], d.v.toLocaleString()); });
+      }
+      var pcts = statsEl.querySelectorAll('.donut-stat-pct');
+      defs.forEach(function(d, i) { setText(pcts[i], total > 0 ? Math.round(d.v / total * 100) + '%' : ''); });
+    }
+
+
+    // ═══════════ PREMIUM UI: campaign mix, live feedback, in-place panels ═══════════
+    var PM_REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var MIDX = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
+
+    function pad2(n) { return n < 10 ? '0' + n : String(n); }
+    function dayKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+    function startOfToday() { var n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
+
+    // "05-Oct-2026" (what formatDate produces) or anything Date.parse understands
+    var dayCache = {};
+    function parseDay(s) {
+      if (!s) return null;
+      if (s in dayCache) return dayCache[s];
+      var out = null;
+      var m = /^(\d{1,2})[-\s]([A-Za-z]{3})[A-Za-z]*[-\s,]+(\d{4})$/.exec(s);
+      var n = /^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/.exec(s);   // sheet dates are day-first
+      if (m && MIDX[m[2].toLowerCase()] !== undefined) out = new Date(+m[3], MIDX[m[2].toLowerCase()], +m[1]);
+      else if (n && +n[2] >= 1 && +n[2] <= 12) out = new Date(+n[3], +n[2] - 1, +n[1]);
+      else if (s !== '—') {
+        var t = Date.parse(s);
+        if (!isNaN(t)) { var d = new Date(t); out = new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+      }
+      dayCache[s] = out;
+      return out;
+    }
+
+    function kindOf(status) {
+      var st = (status || '').toUpperCase();
+      if (st.indexOf('APPROVED') >= 0 || st === 'APPROVE') return st.indexOf('BOD') >= 0 ? 'bod' : 'approved';
+      if (st.indexOf('REJECTED') >= 0 || st === 'REJECT') return 'rejected';
+      return 'pending';
+    }
+    function tally() { return { total: 0, approved: 0, bod: 0, rejected: 0, pending: 0 }; }
+    function addTo(t, kind) {
+      t.total++;
+      if (kind === 'bod') { t.approved++; t.bod++; } else t[kind]++;
+    }
+    // FLIP: rows that change position glide to their new place instead of jumping
+    function measure(container, selector) {
+      var pos = {};
+      container.querySelectorAll(selector).forEach(function(el) {
+        if (el.__key) { var r = el.getBoundingClientRect(); pos[el.__key] = { x: r.left, y: r.top }; }
+      });
+      return pos;
+    }
+    function flip(container, selector, before) {
+      if (PM_REDUCED) return;
+      container.querySelectorAll(selector).forEach(function(el) {
+        if (!(el.__key in before)) return;
+        var r = el.getBoundingClientRect();
+        var dx = before[el.__key].x - r.left, dy = before[el.__key].y - r.top;
+        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+        el.style.transition = 'none';
+        el.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
+        el.getBoundingClientRect();
+        requestAnimationFrame(function() {
+          el.style.transition = 'transform 0.7s cubic-bezier(0.2,0.8,0.2,1)';
+          el.style.transform = '';
+          clearTimeout(el.__flipT);
+          el.__flipT = setTimeout(function() { el.style.transition = ''; }, 750);
+        });
+      });
+    }
+    function placeAt(container, el, idx) {
+      if (container.children[idx] !== el) container.insertBefore(el, container.children[idx] || null);
+    }
+    function setText(el, text) { if (el && el.textContent !== text) el.textContent = text; }
+
+    // ── Shared tooltip ──
+    var tip = document.getElementById('chartTip');
+    function showTip(anchor, title, total, rows) {
+      if (!tip) return;
+      tip.textContent = '';
+      var t = document.createElement('div'); t.className = 'tip-title'; t.textContent = title; tip.appendChild(t);
+      if (total) {
+        var tr = document.createElement('div'); tr.className = 'tip-row tip-total';
+        var tb = document.createElement('b'); tb.textContent = total.value; tr.appendChild(tb);
+        var ts = document.createElement('span'); ts.textContent = total.label; tr.appendChild(ts);
+        tip.appendChild(tr);
+      }
+      rows.forEach(function(r) {
+        var row = document.createElement('div'); row.className = 'tip-row';
+        var k = document.createElement('i'); k.className = 'tip-key'; k.style.background = r.color; row.appendChild(k);
+        var b = document.createElement('b'); b.textContent = r.value; row.appendChild(b);
+        var s = document.createElement('span'); s.textContent = r.label; row.appendChild(s);
+        tip.appendChild(row);
+      });
+      var a = anchor.getBoundingClientRect();
+      tip.style.left = '0px'; tip.style.top = '0px';
+      tip.classList.add('show');
+      var w = tip.offsetWidth, h = tip.offsetHeight;
+      var x = a.left + a.width / 2 - w / 2;
+      x = Math.max(8, Math.min(window.innerWidth - w - 8, x));
+      var y = a.top - h - 10;
+      if (y < 70) y = a.bottom + 10;
+      tip.style.left = Math.round(x) + 'px';
+      tip.style.top = Math.round(y) + 'px';
+    }
+    function hideTip() { if (tip) tip.classList.remove('show'); }
+    window.addEventListener('scroll', hideTip, { passive: true });
+
+    function rowsInScope() {
+      // the insights row follows the SDR picked in the list
+      return filterByActiveSdr(allRows);
+    }
+
+    // ── Insights: campaign mix ──
+    // Campaign Mix covers today's appointments only
+    function rowsToday(rows) {
+      var today = dayKey(startOfToday());
+      return rows.filter(function(r) { var d = parseDay(r.date); return d && dayKey(d) === today; });
+    }
+
+    function renderCampaigns(rows) {
+      var list = document.getElementById('campList');
+      if (!list) return;
+      var map = {};
+      rows.forEach(function(r) {
+        var name = (r.campaign || '').trim() || 'Unknown';
+        if (!map[name]) map[name] = tally();
+        addTo(map[name], kindOf(r.status));
+      });
+      var all = Object.keys(map).map(function(k) { return { name: k, t: map[k] }; });
+      all.sort(function(a, b) { return b.t.total - a.t.total || b.t.approved - a.t.approved || a.name.localeCompare(b.name); });
+      var top = all.slice(0, 8);
+      var max = top.length ? top[0].t.total : 1;
+      var search = (document.getElementById('tableSearch').value || '').trim().toLowerCase();
+
+      var spin = list.querySelector('.loading-overlay');
+      if (spin) spin.remove();
+      var emptyEl = list.querySelector('.camp-empty');
+      if (!top.length) {
+        list.textContent = '';
+        var e = document.createElement('div'); e.className = 'camp-empty'; e.textContent = 'No appointments logged today yet';
+        list.appendChild(e);
+        setText(document.getElementById('campSub'), 'New appointments appear here as they are logged');
+        return;
+      }
+      if (emptyEl) emptyEl.remove();
+
+      var before = measure(list, '.camp-row');
+      var existing = {};
+      list.querySelectorAll('.camp-row').forEach(function(el) { existing[el.__key] = el; });
+      var keep = {};
+      top.forEach(function(c, idx) {
+        var row = existing[c.name];
+        if (!row) {
+          row = document.createElement('div');
+          row.className = 'camp-row' + (PM_REDUCED ? '' : ' pm-in');
+          row.__key = c.name;
+          row.tabIndex = 0;
+          row.innerHTML = '<div class="camp-top"><span class="camp-name"></span><span class="camp-val"></span></div>' +
+            '<div class="camp-track"><div class="camp-seg approved"></div><div class="camp-seg rejected"></div><div class="camp-seg pending"></div></div>';
+          row.querySelector('.camp-name').textContent = c.name;
+          row.querySelector('.camp-name').title = c.name;
+          row.addEventListener('click', function() { toggleCampaignFilter(row.__key); });
+          row.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCampaignFilter(row.__key); } });
+          row.addEventListener('pointerenter', function() { campTip(row); });
+          row.addEventListener('focus', function() { campTip(row); });
+          row.addEventListener('pointerleave', hideTip);
+          row.addEventListener('blur', hideTip);
+          setTimeout(function() { row.classList.remove('pm-in'); }, 900);
+          var segs0 = row.querySelectorAll('.camp-seg');
+          segs0.forEach(function(s) { s.style.width = '0%'; });
+        }
+        row.__t = c.t;
+        keep[c.name] = true;
+        placeAt(list, row, idx);
+        row.classList.toggle('active', search !== '' && search === c.name.toLowerCase());
+        var rate = c.t.total ? Math.round(c.t.approved / c.t.total * 100) : 0;
+        var valHtml = '<b>' + c.t.approved + '</b> of ' + c.t.total + ' · ' + rate + '%';
+        var valEl = row.querySelector('.camp-val');
+        if (valEl.__html !== valHtml) { valEl.innerHTML = valHtml; valEl.__html = valHtml; }
+        var segs = row.querySelectorAll('.camp-seg');
+        var vals = [c.t.approved, c.t.rejected, c.t.pending];
+        var lastIdx = -1;
+        vals.forEach(function(v, s) { if (v > 0) lastIdx = s; });
+        vals.forEach(function(v, s) {
+          segs[s].classList.toggle('zero', v === 0);
+          segs[s].classList.toggle('last', s === lastIdx);
+          var w = (v / max * 100).toFixed(2) + '%';
+          segs[s].__w = w;
+          if (segs[s].style.width === '0%' && !PM_REDUCED) {
+            requestAnimationFrame(function() { requestAnimationFrame(function() { segs[s].style.width = segs[s].__w; }); });
+          } else segs[s].style.width = w;
+        });
+      });
+      Object.keys(existing).forEach(function(k) { if (!keep[k]) existing[k].remove(); });
+
+      var foot = list.querySelector('.camp-foot');
+      var more = all.length - top.length;
+      if (more > 0) {
+        if (!foot) { foot = document.createElement('div'); foot.className = 'camp-foot'; }
+        setText(foot, '+' + more + ' more campaign' + (more > 1 ? 's' : '') + ' with fewer appointments');
+        list.appendChild(foot);
+      } else if (foot) foot.remove();
+
+      flip(list, '.camp-row', before);
+      var todayTotal = all.reduce(function(n, c) { return n + c.t.total; }, 0);
+      setText(document.getElementById('campSub'), todayTotal + ' appointment' + (todayTotal !== 1 ? 's' : '') + ' across ' + all.length + ' campaign' + (all.length !== 1 ? 's' : '') + ' · click one to filter the log');
+    }
+
+    function campTip(row) {
+      var t = row.__t; if (!t) return;
+      var rows = [
+        { color: 'var(--green)', value: t.approved, label: 'Approved' + (t.bod ? ' (incl. ' + t.bod + ' BOD)' : '') },
+        { color: 'var(--red)', value: t.rejected, label: 'Rejected' }
+      ];
+      if (t.pending) rows.push({ color: '#8a847b', value: t.pending, label: 'Pending / other' });
+      showTip(row, row.__key, { value: (t.total ? Math.round(t.approved / t.total * 100) : 0) + '%', label: 'approval rate · ' + t.total + ' total' }, rows);
+    }
+
+    function toggleCampaignFilter(name) {
+      var input = document.getElementById('tableSearch');
+      input.value = input.value.trim().toLowerCase() === name.toLowerCase() ? '' : name;
+      input.dispatchEvent(new Event('input'));
+      var log = document.querySelector('.table-section');
+      if (log && input.value && log.getBoundingClientRect().top > window.innerHeight * 0.8) {
+        log.scrollIntoView({ behavior: PM_REDUCED ? 'auto' : 'smooth', block: 'start' });
       }
     }
+
+    function renderInsights() {
+      var scoped = rowsInScope();
+      renderCampaigns(rowsToday(scoped));
+      var scope = document.getElementById('insightsScope');
+      if (scope) {
+        var t = startOfToday();
+        var label = (activeSdr ? activeSdr : 'All SDRs') + ' · Today, ' + t.getDate() + ' ' + MONTHS[t.getMonth()];
+        setText(scope, label);
+        scope.classList.toggle('filtered', !!activeSdr);
+      }
+    }
+
+    // After midnight the card (and the "today" chips) roll over to the new day without a reload
+    var shownDay = dayKey(startOfToday());
+    setInterval(function() {
+      var k = dayKey(startOfToday());
+      if (k === shownDay) return;
+      shownDay = k;
+      renderInsights();
+      renderTodayChips();
+    }, 60000);
+
+    // ── Appointment-rate card: approved / rejected / pending split ──
+    function renderRateSplit(total, approved, rejected) {
+      var bar = document.getElementById('rateSplit'); if (!bar) return;
+      var pending = Math.max(0, total - approved - rejected);
+      var vals = [approved, rejected, pending];
+      Array.prototype.forEach.call(bar.children, function(seg, i) {
+        seg.classList.toggle('zero', vals[i] === 0);
+        var w = total ? (vals[i] / total * 100).toFixed(2) + '%' : '0%';
+        seg.__w = w;
+        if (!seg.__seen && !PM_REDUCED) {
+          seg.__seen = true;
+          requestAnimationFrame(function() { requestAnimationFrame(function() { seg.style.width = seg.__w; }); });
+        } else seg.style.width = w;
+      });
+      var cap = document.getElementById('rateSplitCap');
+      var html = '<span><b>' + approved + '</b> approved</span><span><b>' + rejected + '</b> rejected</span>' +
+        (pending ? '<span><b>' + pending + '</b> pending</span>' : '');
+      if (cap && cap.__html !== html) { cap.innerHTML = html; cap.__html = html; }
+    }
+
+    // ── KPI "today" chips ──
+    function renderTodayChips() {
+      var today = dayKey(startOfToday()), t = tally();
+      allRows.forEach(function(r) { var d = parseDay(r.date); if (d && dayKey(d) === today) addTo(t, kindOf(r.status)); });
+      function chip(id, n, cls) {
+        var el = document.getElementById(id); if (!el) return;
+        var html = (n > 0 ? '+' + n : '0') + '<span class="chip-word"> today</span>';
+        if (el.__html !== html) { el.innerHTML = html; el.__html = html; el.title = n + ' added today'; }
+        el.className = 'kpi-chip ' + (n > 0 ? cls : 'quiet');
+      }
+      chip('chipTotal', t.total, '');
+      chip('chipApproved', t.approved, 'green');
+      chip('chipRejected', t.rejected, 'red');
+    }
+
+    // ── Glow on cards whose numbers just changed, plus a toast for new activity ──
+    var lastKpi = null;
+    function flashCards(total, approved, rejected, rate) {
+      var now = { kpiTotal: total, kpiApproved: approved, kpiRejected: rejected, kpiRate: rate };
+      if (lastKpi && !PM_REDUCED) {
+        Object.keys(now).forEach(function(id) {
+          if (lastKpi[id] === now[id]) return;
+          var card = document.getElementById(id) && document.getElementById(id).closest('.kpi-card');
+          if (!card) return;
+          card.classList.remove('pm-flash'); void card.offsetWidth; card.classList.add('pm-flash');
+          setTimeout(function() { card.classList.remove('pm-flash'); }, 1400);
+        });
+      }
+      lastKpi = now;
+    }
+
+    function announceChanges(oldRows, newRows) {
+      if (!oldRows || !oldRows.length) return;
+      var before = {};
+      oldRows.forEach(function(r) { var k = r.sdr + '|' + r.client + '|' + r.campaign + '|' + r.date; before[k] = r.status; });
+      var added = [], changed = [];
+      newRows.forEach(function(r) {
+        var k = r.sdr + '|' + r.client + '|' + r.campaign + '|' + r.date;
+        if (!(k in before)) added.push(r);
+        else if (before[k] !== r.status) changed.push(r);
+      });
+      if (added.length) {
+        var names = [];
+        added.forEach(function(r) { if (names.indexOf(r.sdr) < 0) names.push(r.sdr); });
+        toast('+', added.length === 1 ? 'New appointment' : added.length + ' new appointments',
+          added.length === 1 ? added[0].sdr + ' · ' + (added[0].campaign || added[0].client || '') :
+          names.slice(0, 3).join(', ') + (names.length > 3 ? ' +' + (names.length - 3) + ' more' : ''), '');
+      }
+      if (changed.length) {
+        var appr = changed.filter(function(r) { var k = kindOf(r.status); return k === 'approved' || k === 'bod'; }).length;
+        toast('✓', changed.length === 1 ? 'Status updated' : changed.length + ' status updates',
+          changed.length === 1 ? changed[0].sdr + ' → ' + (changed[0].status ? changed[0].status.charAt(0) + changed[0].status.slice(1).toLowerCase() : '—') :
+          appr + ' now approved', appr ? 'green' : '');
+      }
+    }
+
+    function toast(icon, title, body, cls) {
+      var stack = document.getElementById('toastStack');
+      if (!stack) return;
+      var el = document.createElement('div');
+      el.className = 'toast' + (cls ? ' ' + cls : '');
+      el.setAttribute('role', 'status');
+      var i = document.createElement('div'); i.className = 'toast-icon'; i.textContent = icon; el.appendChild(i);
+      var txt = document.createElement('div');
+      var t = document.createElement('div'); t.className = 'toast-title'; t.textContent = title; txt.appendChild(t);
+      if (body) { var b = document.createElement('div'); b.className = 'toast-body'; b.textContent = body; txt.appendChild(b); }
+      el.appendChild(txt);
+      stack.appendChild(el);
+      while (stack.children.length > 3) stack.firstElementChild.remove();
+      setTimeout(function() {
+        el.classList.add('out');
+        setTimeout(function() { el.remove(); }, 400);
+      }, 5200);
+    }
+
+    // ── Donut: hover a slice (or its legend entry) for a centred readout ──
+    var DONUT_LABELS = ['Approved', 'Rejected', 'Pending'];
+    function donutHot(idx) {
+      var svg = document.getElementById('donutSvg');
+      var chart = svg && svg.closest('.donut-chart');
+      if (!svg || !chart) return;
+      svg.querySelectorAll('.donut-arc').forEach(function(a) { a.classList.toggle('hot', +a.getAttribute('data-slice') === idx); });
+      document.querySelectorAll('#donutStats .donut-stat').forEach(function(s, i) { s.classList.toggle('hot', i === idx); });
+      var arc = idx >= 0 ? svg.querySelector('.donut-arc[data-slice="' + idx + '"]') : null;
+      if (!arc || !arc.__info) {
+        svg.classList.remove('has-hot'); chart.classList.remove('hovering'); return;
+      }
+      svg.classList.add('has-hot'); chart.classList.add('hovering');
+      var v = document.getElementById('donutHoverVal'), l = document.getElementById('donutHoverLabel');
+      setText(v, (arc.__info.pct * 100).toFixed(0) + '%');
+      v.style.color = arc.__info.color;
+      setText(l, arc.__info.val.toLocaleString() + ' ' + DONUT_LABELS[idx]);
+    }
+    (function wireDonut() {
+      var svg = document.getElementById('donutSvg');
+      if (svg) {
+        svg.addEventListener('pointerover', function(e) {
+          var a = e.target.closest && e.target.closest('.donut-arc');
+          donutHot(a ? +a.getAttribute('data-slice') : -1);
+        });
+        svg.addEventListener('pointerleave', function() { donutHot(-1); });
+      }
+      var stats = document.getElementById('donutStats');
+      if (stats) {
+        stats.addEventListener('pointerover', function(e) {
+          var s = e.target.closest('.donut-stat');
+          donutHot(s ? Array.prototype.indexOf.call(stats.children, s) : -1);
+        });
+        stats.addEventListener('pointerleave', function() { donutHot(-1); });
+      }
+    })();
+
+    // ── Data refresh: one request at a time, pause while the tab is hidden ──
+    var inFlight = false, inFlightTimer = null;
+    function beginFetch() {
+      if (inFlight) return false;
+      inFlight = true;
+      clearTimeout(inFlightTimer);
+      inFlightTimer = setTimeout(endFetch, 12000);   // never stay stuck
+      return true;
+    }
+    function endFetch() { inFlight = false; clearTimeout(inFlightTimer); }
+    document.addEventListener('visibilitychange', function() { if (!document.hidden) fetchData(); });
 
     // Search handler
     document.getElementById('tableSearch').addEventListener('input', function() {
       var filtered = filterByActiveSdr(allRows);
       renderTableIncremental(filtered, null);
+      renderCampaigns(rowsToday(rowsInScope()));
     });
 
     // Initial fetch + auto-refresh
